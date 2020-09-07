@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'userauth.apps.UserauthConfig',
+    'msfjsonrpc.apps.MsfjsonrpcConfig',
 ]
 
 MIDDLEWARE = [
@@ -107,6 +108,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'homados.contrib.authentication.SessionAuthentication',
     ]
@@ -191,7 +194,7 @@ LOGGING = {
     }
 }
     
-logger = logging.getLogger("homados")
+LOGGER = logging.getLogger("homados")
 
 
 # session所使用的自定义header

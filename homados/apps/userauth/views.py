@@ -1,9 +1,10 @@
 from django.contrib import auth
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AnonymousUser
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import exceptions
 
 from homados.contrib.mymixins import PackResponseMixin
 
@@ -29,6 +30,8 @@ class AuthViewSet(PackResponseMixin, viewsets.GenericViewSet):
     def login(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         user = auth.authenticate(request, username=serializer.initial_data["username"], password=serializer.initial_data["password"])
+        if not user:
+            raise exceptions.PermissionDenied(detail='账号或密码错误')
         auth.login(request, user)
         serializer = self.get_serializer(user)
         return Response({**serializer.data, 'token': request.session.session_key})
@@ -37,3 +40,11 @@ class AuthViewSet(PackResponseMixin, viewsets.GenericViewSet):
     def logout(self, request, *args, **kwargs):
         auth.logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    @action(methods=["GET"], detail=False, url_path="info")
+    def info(self, request, *args, **kwargs):
+        data = {}
+        data['roles'] = ['admin'] if request.user.is_staff else ['user']
+        serializer = self.get_serializer(request.user)
+        data.update(serializer.data)
+        return Response(data)
