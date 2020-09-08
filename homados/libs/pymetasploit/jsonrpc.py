@@ -562,7 +562,7 @@ class MsfModule:
         Mandatory Arguments:
         - item : the option name.
         """
-        if item not in self._moptions:
+        if item not in self._moptions and item not in self._runopts:
             raise KeyError("Invalid option '%s'." % item)
         return self._runopts.get(item)
 
@@ -576,7 +576,7 @@ class MsfModule:
         """
 
         if key not in self.options:
-            raise KeyError("Invalid option '%s'." % key)
+            self._runopts[key] = value
         elif 'enums' in self._moptions[key] and value not in self._moptions[key]['enums']:
             raise ValueError("Value ('%s') is not one of %s" % (value, repr(self._moptions[key]['enums'])))
         elif self._moptions[key]['type'] == 'bool' and not isinstance(value, bool):

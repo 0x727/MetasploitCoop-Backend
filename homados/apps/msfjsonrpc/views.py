@@ -1,3 +1,4 @@
+import base64
 import functools
 import io
 
@@ -109,8 +110,7 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
             exploit_module.save()
             return Response(data=exploit_module.compatible_payloads)
         except (KeyError, ) as e:
-            logger.exception()
-            raise exceptions.APIException(detail=e)
+            raise UnknownError
         except (AttributeError, ) as e:
             msg = '没有这个exploit'
             logger.exception(msg)
@@ -120,9 +120,10 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     def get_options(self, request, *args, **kwargs):
         """获取模块选项"""
         try:
+
             module_type = request.query_params['type']
             module_ref_name = request.query_params['ref_name']
-            module_ref_name = module_ref_name[len(module_type):] if module_ref_name.startswith(module_type+'/') else module_ref_name
+            module_ref_name = module_ref_name[len(module_type)+1:] if module_ref_name.startswith(module_type+'/') else module_ref_name
             module_obj = Modules.objects.filter(type=module_type, ref_name=module_ref_name).first()
             if module_obj.options is not None:
                 return Response(data=module_obj.options)
@@ -130,12 +131,35 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
             module_obj.save()
             return Response(data=module_obj.options)
         except (KeyError, MsfRpcError, ) as e:
-            logger.exception()
+            logger.exception('参数或msfjsonrpc出错')
             raise exceptions.APIException(detail=e)
         except (AttributeError, ) as e:
             msg = '没有这个模块'
             logger.exception(msg)
             raise exceptions.APIException(detail=msg)
+    
+    @action(methods=['POST'], detail=True, url_path='genStagers')
+    def gen_stagers(self, request, *args, **kwargs):
+        try:
+            module = self.get_object()
+            assert module.type == 'payload'
+            payload = msfjsonrpc.modules.use('payload', module.ref_name)
+            payload['Format'] = 'c'
+            for k, v in request.data.items():
+                payload[k] = v
+            if payload.missing_required:
+                raise exceptions.ValidationError(detail={'参数缺失': payload.missing_required})
+            data = payload.payload_generate()
+            data = base64.b64decode(data)
+            return Response(data=data.decode())
+        except AttributeError as e:
+            raise exceptions.ValidationError(detail={'error': '参数错误'})
+        except (UnicodeDecodeError, ) as e:
+            data = io.BytesIO(data)
+            data.seek(0)
+            return FileResponse(data, as_attachment=True, filename=f"test.{payload['Format']}")
+        except Exception as e:
+            raise UnknownError
 
 
 class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
@@ -329,17 +353,6 @@ class InfoViewSet(PackResponseMixin, viewsets.GenericViewSet):
         encoders = msfjsonrpc.modules.encoders
         return Response(data=encoders)
 
-    # ToDelete
-    @inner_try
-    @action(methods=['GET'], detail=False, url_path='moduleStats')
-    def module_stats(self, request, *args, **kwargs):
-        """Get the number of modules loaded, broken down by type."""
-        stats = msfjsonrpc.core.stats
-        data = []
-        for k, v in stats.items():
-            data.append({'name': k, 'count': v})
-        return Response(data=data)
-
     @inner_try
     @action(methods=['GET'], detail=False, url_path='threadList')
     def thread_list(self, request, *args, **kwargs):
@@ -360,7 +373,7 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
 
     def create(self, request, *args, **kwargs):
         try:
-            payload_type = request.data['payload']
+            payload_type = request.data['PAYLOAD']
             module_exploit = msfjsonrpc.modules.use('exploit', 'exploit/multi/handler')
             # don't exit from the exploit after a session has been created
             module_exploit['ExitOnSession'] = False
@@ -374,7 +387,7 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
             result = module_exploit.execute(payload=module_payload)
             return Response(data=result)
         except (KeyError, ) as e:
-            raise MissParamError(body_params=['payload'])
+            raise MissParamError(body_params=['PAYLOAD'])
 
     def list(self, request, *args, **kwargs):
         data = []
@@ -387,15 +400,3 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
     def destroy(self, request, *args, **kwargs):
         result = msfjsonrpc.jobs.stop(kwargs[self.lookup_field])
         return Response(data=result)
-    
-    # ToDelete
-    @action(methods=['GET'], detail=False, url_path='compatiblePayloads')
-    def get_target_compatible_payloads(self, request, *args, **kwargs):
-        """获取与特定的exp模块兼容的 payload 列表"""
-        exploit = request.query_params.get('exploit')
-        exploit = exploit or 'exploit/multi/handler'
-        target = request.query_params.get('target')
-        target = target if target else 0
-        module_exp = msfjsonrpc.modules.use('exploit', exploit)
-        payloads = module_exp.targetpayloads(t=target)
-        return Response(data=payloads)
