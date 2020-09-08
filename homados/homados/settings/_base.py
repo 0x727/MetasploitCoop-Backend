@@ -174,6 +174,7 @@ LOGGING = {
              'level': 'INFO',
              'class': 'logging.handlers.TimedRotatingFileHandler',
              'filename': '%s/kerisweb.log' % LOGGING_DIR,
+             'when': 'midnight',
              'formatter':'standard',
              'encoding': 'utf-8'
         }, # for file output
