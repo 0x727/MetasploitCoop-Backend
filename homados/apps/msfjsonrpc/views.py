@@ -6,6 +6,7 @@ import html2text
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count
+from django.db.models import Q
 from django.http import FileResponse
 from rest_framework import exceptions, filters, status, viewsets
 from rest_framework.decorators import action
@@ -120,44 +121,19 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     def get_options(self, request, *args, **kwargs):
         """获取模块选项"""
         try:
-
-            module_type = request.query_params['type']
             module_ref_name = request.query_params['ref_name']
-            module_ref_name = module_ref_name[len(module_type)+1:] if module_ref_name.startswith(module_type+'/') else module_ref_name
-            module_obj = Modules.objects.filter(type=module_type, ref_name=module_ref_name).first()
-            if module_obj.options is not None:
-                return Response(data=module_obj.options)
-            module_obj.options = msfjsonrpc.modules.use(module_type, module_ref_name)._moptions
-            module_obj.save()
-            return Response(data=module_obj.options)
-        except (KeyError, MsfRpcError, ) as e:
-            logger.exception('参数或msfjsonrpc出错')
-            raise exceptions.APIException(detail=e)
-        except (AttributeError, ) as e:
-            msg = '没有这个模块'
-            logger.exception(msg)
-            raise exceptions.APIException(detail=msg)
-    
-    @action(methods=['POST'], detail=True, url_path='genStagers')
-    def gen_stagers(self, request, *args, **kwargs):
-        try:
-            module = self.get_object()
-            assert module.type == 'payload'
-            payload = msfjsonrpc.modules.use('payload', module.ref_name)
-            payload['Format'] = 'c'
-            for k, v in request.data.items():
-                payload[k] = v
-            if payload.missing_required:
-                raise exceptions.ValidationError(detail={'参数缺失': payload.missing_required})
-            data = payload.payload_generate()
-            data = base64.b64decode(data)
-            return Response(data=data.decode())
-        except AttributeError as e:
-            raise exceptions.ValidationError(detail={'error': '参数错误'})
-        except (UnicodeDecodeError, ) as e:
-            data = io.BytesIO(data)
-            data.seek(0)
-            return FileResponse(data, as_attachment=True, filename=f"test.{payload['Format']}")
+            module = Modules.objects.get(Q(ref_name=module_ref_name) | Q(fullname=module_ref_name))
+            if module.options is not None:
+                return Response(data=module.options)
+            module.options = msfjsonrpc.modules.use(module.type, module.ref_name)._moptions
+            module.save()
+            return Response(data=module.options)
+        except ObjectDoesNotExist as e:
+            raise exceptions.NotFound
+        except KeyError as e:
+            raise MissParamError(query_params=['ref_name'])
+        except MsfRpcError as e:
+            raise MSFJSONRPCError
         except Exception as e:
             raise UnknownError
 
@@ -400,3 +376,33 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
     def destroy(self, request, *args, **kwargs):
         result = msfjsonrpc.jobs.stop(kwargs[self.lookup_field])
         return Response(data=result)
+    
+    @action(methods=["POST"], detail=True, url_path='genStagers')
+    def gen_stagers(self, request, *args, **kwargs):
+        try:
+            # 获取module
+            job = msfjsonrpc.jobs.info(kwargs[self.lookup_field])
+            options = job['datastore']
+            payload_ref_name = options.pop('PAYLOAD')
+            module = Modules.objects.get(ref_name=payload_ref_name)
+            # 设置module参数
+            options['Format'] = 'c'
+            options.update(request.data)
+            payload = msfjsonrpc.modules.use('payload', module.ref_name)
+            for k, v in options.items():
+                payload[k] = v
+            if payload.missing_required:
+                raise exceptions.ValidationError(detail={'参数缺失': payload.missing_required})
+            data = payload.payload_generate()
+            data = base64.b64decode(data)
+            return Response(data=data.decode())
+        except ObjectDoesNotExist as e:
+            raise exceptions.NotFound
+        except KeyError as e:
+            raise MSFJSONRPCError(detail='session信息中不存在datastore')
+        except (UnicodeDecodeError, ) as e:
+            data = io.BytesIO(data)
+            data.seek(0)
+            return FileResponse(data, as_attachment=True, filename=f"test.{payload['Format']}")
+        except Exception as e:
+            raise UnknownError

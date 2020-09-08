@@ -581,7 +581,7 @@ class MsfModule:
             raise ValueError("Value ('%s') is not one of %s" % (value, repr(self._moptions[key]['enums'])))
         elif self._moptions[key]['type'] == 'bool' and not isinstance(value, bool):
             raise TypeError("Value must be a boolean not '%s'" % type(value).__name__)
-        elif self._moptions[key]['type'] in ['integer', 'float'] and not isinstance(value, Number):
+        elif self._moptions[key]['type'] in ['integer', 'float'] and value is not None and not isinstance(value, (int, float)):
             raise TypeError("Value must be an integer not '%s'" % type(value).__name__)
         self._runopts[key] = value
 

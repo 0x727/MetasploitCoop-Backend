@@ -14,8 +14,9 @@ class UnknownError(exceptions.APIException):
 
 
 class MSFJSONRPCError(exceptions.APIException):
-    def __init__(self):
+    def __init__(self, detail=''):
         msg = 'msfjsonrpc出错'
+        msg = f'{msg}: {detail}' if detail else msg
         logger.exception(msg)
         super().__init__(detail=msg, code=status.HTTP_502_BAD_GATEWAY)
 
