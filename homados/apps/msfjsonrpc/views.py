@@ -160,21 +160,21 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
     @action(methods=["POST"], detail=True, url_path='executeCmd')
     def execute_cmd(self, request, *args, **kwargs):
         try:
-            command = request.query_params['command']
+            command = request.data['command']
             if not command:
                 return Response(data='')
             shell = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
             result = shell.execute_cmd(command)
             return Response(data=result)
         except (KeyError, ) as e:
-            raise MissParamError(query_params=['command'])
+            raise MissParamError(body_params=['command'])
         except Exception as e:
             raise UnknownError
     
     @action(methods=['GET'], detail=True, url_path='cmdAutocomplete')
     def cmd_autocomplete(self, request, *args, **kwargs):
         try:
-            command = request.query_params.get['command']
+            command = request.query_params['command']
             if not command:
                 return Response(data='')
             shell = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
@@ -394,6 +394,8 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
             if payload.missing_required:
                 raise exceptions.ValidationError(detail={'参数缺失': payload.missing_required})
             data = payload.payload_generate()
+            if isinstance(data, dict) and data.get('error'):
+                raise MSFJSONRPCError(detail=data['error']['message'])
             data = base64.b64decode(data)
             return Response(data=data.decode())
         except ObjectDoesNotExist as e:
@@ -404,5 +406,3 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
             data = io.BytesIO(data)
             data.seek(0)
             return FileResponse(data, as_attachment=True, filename=f"test.{payload['Format']}")
-        except Exception as e:
-            raise UnknownError
