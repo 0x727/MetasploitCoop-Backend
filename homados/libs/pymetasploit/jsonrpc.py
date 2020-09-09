@@ -176,8 +176,8 @@ class MsfJsonRpc:
 
         if r.status_code == 401:
             raise MsfAuthError('Authenticate to access this resource.')
-
-        return r.json()['result']
+        
+        return r.json() if r.json().get('result') is None else r.json()['result']
     
     @retry(tries=3, delay=1, backoff=2)
     def post_request(self, url, payload):
@@ -613,7 +613,7 @@ class MsfModule:
         if not isinstance(self, PayloadModule):
             return None
         data = self.rpc.call(MsfRpcMethod.ModuleExecute, [self.moduletype, self.modulename, runopts])
-        return data['payload']
+        return data.get('payload') or data
 
     def execute(self, **kwargs):
         """
