@@ -24,4 +24,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path(apiv1, include('userauth.urls')),
     path(apiv1, include('msfjsonrpc.urls')),
+    path(apiv1 + 'dbmsf/', include('dbmsf.urls')),
 ]

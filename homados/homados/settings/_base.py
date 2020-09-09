@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'userauth.apps.UserauthConfig',
     'msfjsonrpc.apps.MsfjsonrpcConfig',
+    'dbmsf.apps.DbmsfConfig',
 ]
 
 MIDDLEWARE = [

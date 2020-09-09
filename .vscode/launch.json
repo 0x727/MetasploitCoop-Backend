@@ -8,9 +8,11 @@
             "name": "Python: Django",
             "type": "python",
             "request": "launch",
+            "justMyCode": false,
             "program": "${workspaceFolder}/homados/manage.py",
             "args": [
                 "runserver",
+                "0.0.0.0:8000",
                 "--noreload"
             ],
             "django": true
