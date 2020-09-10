@@ -198,11 +198,13 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
     @action(methods=['GET'], detail=True, url_path='dirList')
     def dir_list(self, request, *args, **kwargs):
         try:
-            command = request.query_params.get('command', 'pwd')
-            dirpath = request.query_params.get('dirpath', '')
+            dirpath = request.query_params.get('dirpath')
+            dirpath = dirpath if dirpath and dirpath.strip() else None
             session = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
-            result = session.dir_list(dirpath, command)
-            return Response(data=result)
+            data = session.dir_list(dirpath)
+            return Response(data=data)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
 
@@ -410,10 +412,10 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
             if payload.missing_required:
                 raise exceptions.ValidationError(detail={'参数缺失': payload.missing_required})
             data = payload.payload_generate()
-            if isinstance(data, dict) and data.get('error'):
-                raise MSFJSONRPCError(detail=data['error']['message'])
             data = base64.b64decode(data)
             return Response(data=data.decode())
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
         except ObjectDoesNotExist as e:
             raise exceptions.NotFound
         except KeyError as e:

@@ -20,6 +20,9 @@ class MsfError(Exception):
 class MsfRpcError(Exception):
     pass
 
+class MsfNoSessionError(MsfRpcError):
+    pass
+
 
 class MsfAuthError(MsfError):
     def __init__(self, msg):
@@ -137,6 +140,7 @@ class MsfRpcMethod:
     SessionMeterpreterProcessList = 'session.meterpreter_ps'
     SessionMeterpreterEditFile = 'session.meterpreter_edit_file'
     SessionMeterpreterUploadFile = 'session.meterpreter_upload_file'
+    SessionMeterpreterDirList = 'session.meterpreter_ls'
     SessionMeterpreterDirectorySeparator = 'session.meterpreter_directory_separator'
     SessionCompatibleModules = 'session.compatible_modules'
 
@@ -171,13 +175,15 @@ class MsfJsonRpc:
             url = "https://%s:%s%s" % (self.host, self.port, self.uri)
         else:
             url = "http://%s:%s%s" % (self.host, self.port, self.uri)
-        
+
         r = self.post_request(url, payload)
 
         if r.status_code == 401:
             raise MsfAuthError('Authenticate to access this resource.')
-        
-        return r.json() if r.json().get('result') is None else r.json()['result']
+        data_json = r.json()
+        if data_json.get('result') is None:
+            raise MsfRpcError(data_json['error']['message'])
+        return data_json['result']
     
     @retry(tries=3, delay=1, backoff=2)
     def post_request(self, url, payload):
@@ -1053,54 +1059,10 @@ class MeterpreterSession(MsfSession):
             return write_dir
         else:
             return self.info['write_dir']
-    
-    def _dir_result_parse(self, result, dirpath=None, show_mount=False):
-        filelist = []
-        if show_mount:
-            cur_path = '/'
-            mount_pattern = re.compile(r'(\S+:\\)\s+?(\w+?)\s+?([\d\.]+\s\w+?)\s+?([\d\.]+\s\w+)')
-            for item in mount_pattern.findall(result):
-                filelist.append({
-                    'modified': '{}|{}'.format(item[3], item[2]),
-                    'size': item[3],
-                    'type': item[1],
-                    'name': item[0].replace('\\', '/').strip()
-                })
-        else:
-            cur_path_pattern = re.compile(r'Listing: (.+)')
-            filelist_pattern = re.compile(r'(\d+?/[rwx-]{9})\s+?(\d+?)\s+?(\w+?)\s+?(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \+\d{4})\s+?(.+)')
-            cur_path = dirpath or cur_path_pattern.search(result).group(1)
-            for item in filelist_pattern.findall(result):
-                filelist.append({
-                    'mode': item[0],
-                    'size': item[1],
-                    'type': item[2],
-                    'modified': item[3],
-                    'name': item[4].strip(),
-                })
-        return {
-            'pwd': cur_path.replace('\\', '/'),
-            'dirs': filelist,
-        }
 
-    
-    def dir_list(self, dirpath, command=MsfCommand.pwd):
-        dirpath = dirpath or '/'
-        result = ''
-        if dirpath == '/' and command == MsfCommand.ls:
-            try:
-                result = self.execute_cmd(' '.join([command, dirpath]))
-                return self._dir_result_parse(result)
-            except:
-                result = self.execute_cmd(MsfCommand.show_mount)
-                return self._dir_result_parse(result, show_mount=True)
-        
-        if command == MsfCommand.pwd:
-            result = self.execute_cmd('ls')
-            return self._dir_result_parse(result)
-        elif command == MsfCommand.ls:
-            result = self.execute_cmd(' '.join([command, dirpath]))
-            return self._dir_result_parse(result, dirpath=dirpath)
+    def dir_list(self, dirpath=None):
+        result = self.rpc.call(MsfRpcMethod.SessionMeterpreterDirList, [self.sid, dirpath])
+        return result['data']
 
     def proc_list(self):
         result = self.rpc.call(MsfRpcMethod.SessionMeterpreterProcessList, [self.sid])
@@ -1238,7 +1200,7 @@ class SessionManager(MsfManager):
                         return MeterpreterSession(k, self.rpc, s)
                     elif s[k]['type'] == 'shell':
                         return ShellSession(k, self.rpc, s)
-            raise KeyError('Session ID (%s) does not exist' % sid)
+            raise MsfNoSessionError('Session ID (%s) does not exist' % sid)
         if s[sid]['type'] == 'meterpreter':
             return MeterpreterSession(sid, self.rpc, s)
         elif s[sid]['type'] == 'shell':
