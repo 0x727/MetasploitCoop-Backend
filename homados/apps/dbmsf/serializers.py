@@ -12,9 +12,11 @@ class SessionSerializer(serializers.ModelSerializer):
 
 
 class SessionEventSerializer(serializers.ModelSerializer):
+    # session_id = serializers.IntegerField(source='session.pk')
     command = BinaryTextField()
     output = BinaryTextField()
 
     class Meta:
         model = SessionEvent
         fields = '__all__'
+        # exclude = ('session', )

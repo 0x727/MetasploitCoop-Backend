@@ -27,7 +27,8 @@ class Session(models.Model):
 class SessionEvent(models.Model):
     """会话事件表"""
     id = models.AutoField(primary_key=True)
-    session_id = models.IntegerField(verbose_name='会话id')
+    session = models.ForeignKey(to='dbmsf.Session', db_constraint=False, on_delete=models.DO_NOTHING, 
+                                db_column='session_id', related_name='session_events', verbose_name='会话id')
     etype = UnlimitedCharField(verbose_name='事件类型')
     command = models.BinaryField(verbose_name='命令')
     output = models.BinaryField(verbose_name='输出')

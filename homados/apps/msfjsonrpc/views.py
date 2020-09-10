@@ -12,6 +12,7 @@ from rest_framework import exceptions, filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from dbmsf.serializers import Session, SessionEvent, SessionEventSerializer
 
 from homados.contrib.exceptions import (MissParamError, MSFJSONRPCError,
                                         UnknownError)
@@ -219,15 +220,29 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             raise UnknownError
     
     @action(methods=['POST'], detail=True, url_path='uploadFile')
-    def upload_file(self, request, sid):
+    def upload_file(self, request, *args, **kwargs):
         try:
             src = request.data['src']
             dest = request.data['dest']
-            session = msfjsonrpc.sessions.session(sid)
+            session = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
             result = session.upload_file(src, dest)
             return Response(data=result)
         except (KeyError, ) as e:
             raise MissParamError(body_params=['src', 'dest'])
+        except Exception as e:
+            raise UnknownError
+    
+    @action(methods=['GET'], detail=True, url_path='events')
+    def events(self, request, *args, **kwargs):
+        """session执行过的事件"""
+        try:
+            sid = kwargs[self.lookup_field]
+            db_session = Session.objects.filter(local_id=sid).order_by('-id').first()
+            if not db_session:
+                raise exceptions.NotFound
+            session_events = db_session.session_events
+            serializer = SessionEventSerializer(session_events, many=True)
+            return Response(data=serializer.data)
         except Exception as e:
             raise UnknownError
 
@@ -276,6 +291,7 @@ class LootViewSet(PackResponseMixin, NoUpdateViewSet):
     def create(self, request, *args, **kwargs):
         try:
             file = request.data['file']
+            print(file)
             filename = file.name
             data = file.read()
             result = msfjsonrpc.core.loot_upload(filename, data)
