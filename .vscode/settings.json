@@ -1,5 +1,16 @@
 {
     "python.autoComplete.extraPaths": [
         "./homados"
-    ]
+    ],
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/venv/**": true,
+        "**/*.pyc": true,
+        "**/node_modules/**": true
+    },
+    "search.exclude": {
+        "**/*.pyc": true,
+        "**/venv": true
+    }
 }

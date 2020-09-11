@@ -3,3 +3,5 @@ djangorestframework==3.11.1
 psycopg2==2.8.5
 requests==2.24.0
 retry==0.9.2
+rubymarshal==1.2.7
+html2text==2020.1.16
