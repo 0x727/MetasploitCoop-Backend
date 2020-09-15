@@ -14,11 +14,18 @@ class CustomerGroup:
     MsfCOnsole = 'MsfConsole'
 
 
-class MsfConsoleCustomer(WebsocketConsumer):
+class BaseCustomer(WebsocketConsumer):
     def connect(self):
         self.accept()
         if isinstance(self.scope['user'], AnonymousUser):
             return self.disconnect()
+        client_addr = ':'.join([str(i) for i in self.scope["client"]])
+        logger.info(f'[{self.__class__.__name__}] {client_addr} websocket 建立连接')
+
+
+class MsfConsoleCustomer(BaseCustomer):
+    def connect(self):
+        super().connect()
         # TODO: 创建msf console(用户session储存)
 
     def disconnect(self, code):
@@ -29,13 +36,9 @@ class MsfConsoleCustomer(WebsocketConsumer):
         return super().receive(text_data=self.scope['user'].username)
 
 
-class MsfNotifyCustomer(WebsocketConsumer):
+class MsfNotifyCustomer(BaseCustomer):
     def connect(self):
-        self.accept()
-        client_addr = ':'.join([str(i) for i in self.scope["client"]])
-        logger.info(f'[msf_notify] {client_addr}连入')
-        if isinstance(self.scope['user'], AnonymousUser):
-            self.disconnect()
+        super().connect()
         async_to_sync(self.channel_layer.group_add)(CustomerGroup.MsfNotify, self.channel_name)
         Notify(CustomerGroup.MsfNotify)
     
