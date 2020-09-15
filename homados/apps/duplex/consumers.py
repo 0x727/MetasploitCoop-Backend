@@ -18,7 +18,7 @@ class BaseCustomer(WebsocketConsumer):
     def connect(self):
         self.accept()
         if isinstance(self.scope['user'], AnonymousUser):
-            return self.disconnect()
+            return self.disconnect(403)
         client_addr = ':'.join([str(i) for i in self.scope["client"]])
         logger.info(f'[{self.__class__.__name__}] {client_addr} websocket 建立连接')
 
