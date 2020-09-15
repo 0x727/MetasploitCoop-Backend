@@ -49,3 +49,10 @@ MSFCONFIG = {
         'TOKEN': os.getenv('MSF_WS_JSON_RPC_API_TOKEN') or 'homados',
     },
 }
+
+# 通道层
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}

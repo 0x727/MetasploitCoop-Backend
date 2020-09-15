@@ -34,6 +34,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -43,7 +44,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'userauth.apps.UserauthConfig',
     'msfjsonrpc.apps.MsfjsonrpcConfig',
-    'dbmsf.apps.DbmsfConfig',
+    'dbmsf',
+    'duplex',
 ]
 
 MIDDLEWARE = [
@@ -172,12 +174,12 @@ LOGGING = {
             'formatter': 'simple'
         },
         'file_handler': {
-             'level': 'INFO',
-             'class': 'logging.handlers.TimedRotatingFileHandler',
-             'filename': '%s/kerisweb.log' % LOGGING_DIR,
-             'when': 'midnight',
-             'formatter':'standard',
-             'encoding': 'utf-8'
+            'level': 'INFO',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': '%s/kerisweb.log' % LOGGING_DIR,
+            'when': 'midnight',
+            'formatter':'standard',
+            'encoding': 'utf-8'
         }, # for file output
     },
     'loggers': {
@@ -201,3 +203,7 @@ LOGGER = logging.getLogger("homados")
 
 # session所使用的自定义header
 SESSION_CUSTOM_HEADER = "X-Token"
+
+
+# Channels
+ASGI_APPLICATION = 'homados.routing.application'
