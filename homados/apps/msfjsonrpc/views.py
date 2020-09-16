@@ -169,6 +169,8 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             return Response(data=result)
         except (KeyError, ) as e:
             raise MissParamError(body_params=['command'])
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
     

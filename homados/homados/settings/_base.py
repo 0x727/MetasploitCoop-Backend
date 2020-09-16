@@ -207,3 +207,12 @@ SESSION_CUSTOM_HEADER = "X-Token"
 
 # Channels
 ASGI_APPLICATION = 'homados.routing.application'
+
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache',
+        'TIMEOUT': 1800,
+    }
+}
