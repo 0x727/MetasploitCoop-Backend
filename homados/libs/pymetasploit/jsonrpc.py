@@ -216,7 +216,10 @@ class MsfJsonRpc:
         The msf RPC jobs manager.
         """
         return JobManager(self)
-
+    
+    @property
+    def consoles(self):
+        return ConsoleManager(self)
 
 class MsfManager:
 
@@ -1234,3 +1237,161 @@ class JobManager(MsfManager):
         - jobid : the ID of the job.
         """
         return self.rpc.call(MsfRpcMethod.JobInfo, [jobid])
+
+
+class MsfConsole(object):
+
+    def __init__(self, rpc, cid=None):
+        """
+        Initializes an msf console.session
+
+        Mandatory Arguments:
+        - rpc : the msfrpc client object.
+
+        Optional Keyword Arguments:
+        - cid : the console identifier if it exists already otherwise a new one will be created.
+        """
+        self.rpc = rpc
+        if cid is None:
+            r = self.rpc.call(MsfRpcMethod.ConsoleCreate)
+            if 'id' in r:
+                self.cid = r['id']
+            else:
+                raise MsfRpcError('Unable to create a new console.')
+        else:
+            self.cid = cid
+
+    def read(self):
+        """
+        Read data from the console.
+        """
+        return self.rpc.call(MsfRpcMethod.ConsoleRead, [self.cid])
+
+    def write(self, command):
+        """
+        Write data to the console.
+        """
+        if not command.endswith('\n'):
+            command += '\n'
+        self.rpc.call(MsfRpcMethod.ConsoleWrite, [self.cid, command])
+
+    def sessionkill(self):
+        """
+        Kill all active meterpreter or shell sessions.
+        """
+        self.rpc.call(MsfRpcMethod.ConsoleSessionKill, [self.cid])
+
+    def sessiondetach(self):
+        """
+        Detach the current meterpreter or shell session.
+        """
+        self.rpc.call(MsfRpcMethod.ConsoleSessionDetach, [self.cid])
+
+    def tabs(self, line):
+        """
+        Tab completion for console commands.
+
+        Mandatory Arguments:
+        - line : a partial command to be completed.
+        """
+        return self.rpc.call(MsfRpcMethod.ConsoleTabs, [self.cid, line])['tabs']
+
+    def destroy(self):
+        """
+        Destroy the console.
+        """
+        self.rpc.call(MsfRpcMethod.ConsoleDestroy, [self.cid])
+
+    def is_busy(self):
+        """
+        Checks if the console is busy. We can't use .read() because that clears the data buffer.
+        We must do this by using .list instead.
+        """
+        cons = self.rpc.call(MsfRpcMethod.ConsoleList)['consoles']
+        for c in cons:
+            if c['id'] == self.cid:
+                return c['busy']
+
+    def run_module_with_output(self, mod, payload=None, run_as_job=False):
+        """
+        Execute a module and wait for the returned data
+
+        Mandatory Arguments:
+        - mod : the MsfModule object
+
+        Optional Keyword Arguments:
+        - payload : the MsfModule object to be used as payload
+        """
+        options_str = 'use {}/{}\n'.format(mod.moduletype, mod.modulename)
+        if self.rpc.consoles.console(self.cid).is_busy():
+            raise MsfError('Console {} is busy'.format(self.cid))
+        self.rpc.consoles.console(self.cid).read()  # clear data buffer
+        opts = mod.runoptions
+        if payload is None:
+            opts['DisablePayloadHandler'] = True
+
+        # Set payload params
+        if mod.moduletype == 'exploit':
+            opts['TARGET'] = mod.target
+            if 'DisablePayloadHandler' in opts and opts['DisablePayloadHandler']:
+                pass
+            elif isinstance(payload, PayloadModule):
+                if payload.modulename not in mod.payloads:
+                    raise ValueError(
+                        'Invalid payload ({}) for given target ({}).'.format(payload.modulename, mod.target))
+                options_str += 'set payload {}\n'.format(payload.modulename)
+                for k, v in payload.runoptions.items():
+                    if v is None or (isinstance(v, str) and not v):
+                        continue
+                    options_str += 'set {} {}\n'.format(k, v)
+            else:
+                raise ValueError('No valid PayloadModule provided for exploit execution.')
+
+        # Set module params
+        for k in opts.keys():
+            options_str += 'set {} {}\n'.format(k, opts[k])
+
+        # Run the module without directly opening a command line
+        options_str += 'run -z'
+        if run_as_job:
+            options_str += " -j"
+        self.rpc.consoles.console(self.cid).write(options_str)
+        data = ''
+        while data == '' or self.rpc.consoles.console(self.cid).is_busy():
+            time.sleep(1)
+            data += self.rpc.consoles.console(self.cid).read()['data']
+        return data
+
+
+class ConsoleManager(MsfManager):
+
+    @property
+    def list(self):
+        """
+        A list of active consoles.
+        """
+        return self.rpc.call(MsfRpcMethod.ConsoleList)['consoles']
+
+    def console(self, cid=None):
+        """
+        Connect to an active console otherwise create a new console.
+
+        Optional Keyword Arguments:
+        - cid : the console identifier.
+        """
+        s = [i['id'] for i in self.list]
+        if cid is None:
+            return MsfConsole(self.rpc)
+        if cid not in s:
+            raise KeyError('Console ID (%s) does not exist' % cid)
+        else:
+            return MsfConsole(self.rpc, cid=cid)
+
+    def destroy(self, cid):
+        """
+        Destroy an active console.
+
+        Mandatory Arguments:
+        - cid : the console identifier.
+        """
+        self.rpc.call(MsfRpcMethod.ConsoleDestroy, [cid])
