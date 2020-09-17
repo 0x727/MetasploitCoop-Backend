@@ -24,14 +24,11 @@ class BaseWS:
             on_error = lambda ws, msg: self.on_error(ws, msg),
             on_close = lambda ws: self.on_close(ws)
         )
-        wst = threading.Thread(target=self.ws.run_forever)
-        wst.daemon = True
-        wst.start()
+        self.connect_to_ws()
     
     @property
     def jsonrpc_token(self):
         return settings.MSFCONFIG['JSONRPC']['TOKEN']
-        self.ws = websocket.WebSocketApp
     
     @property
     def jsonrpc_host(self):
@@ -44,19 +41,22 @@ class BaseWS:
     def get_ws_addr(self):
         raise NotImplementedError
 
+    def connect_to_ws(self):
+        wst = threading.Thread(target=self.ws.run_forever)
+        wst.daemon = True
+        wst.start()
+
     def on_open(self, ws):
         logger.info(f'<{self.__class__.__name__}> 与 msf 建立连接')
     
     def on_close(self, ws):
-        logger.info(f'<{self.__class__.__name__}> 与 msf 断开连接')
+        logger.warning(f'<{self.__class__.__name__}> 与 msf 断开连接')
     
     def on_error(self, ws, error):
         logger.error(f'<{self.__class__.__name__}> 与 msf 的连接出现错误, {error}')
     
     def on_message(self, ws, message):
         raise NotImplementedError
-        
-# TODO: ws重连机制
 
 
 class Notify(BaseWS, metaclass=Singleton):
@@ -72,6 +72,15 @@ class Notify(BaseWS, metaclass=Singleton):
                 'message': message
             }
         )
+
+    def connect_to_ws(self):
+        """支持自动重连"""
+        def reconnect():
+            while self.ws.run_forever():
+                logger.info(f'<{self.__class__.__name__}> 正在尝试重连')
+        wst = threading.Thread(target=reconnect)
+        wst.daemon = True
+        wst.start()
 
 
 class Console(BaseWS):
