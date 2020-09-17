@@ -11,68 +11,14 @@ import time
 logger = settings.LOGGER
 
 
-# TODO: 抽出基类
-# TODO: ws重连机制
-
-
-class Notify(metaclass=Singleton):
-    """msf 提醒，一个系统中只需要一个实例，无需close"""
-    def __init__(self, group_name: str):
-        self.group_name = group_name
-        token = settings.MSFCONFIG['JSONRPC']['TOKEN']
-        host = settings.MSFCONFIG['HOST']
-        port = settings.MSFCONFIG['JSONRPC']['PORT']
-        self.ws_addr = f'ws://{host}:{port}/api/v1/websocket/notify'
-        self.channel_layer = channels.layers.get_channel_layer()
-        ws = websocket.WebSocketApp(
-            self.ws_addr,
-            header={'Authorization': f'Bearer {token}'},
-            on_open=self.on_open,
-            on_message=self.on_message,
-            on_error=self.on_error,
-            on_close=self.on_close
-        )
-        setattr(ws, 'channel_layer', self.channel_layer)
-        setattr(ws, 'group_name', self.group_name)
-        wst = threading.Thread(target=ws.run_forever)
-        wst.daemon = True
-        wst.start()
-
-    @staticmethod
-    def on_open(ws):
-        logger.info(f'与 msf notify 建立连接')
-
-    @staticmethod
-    def on_message(ws, message):
-        async_to_sync(ws.channel_layer.group_send)(
-            ws.group_name,
-            {
-                'type': 'send_message',
-                'message': message
-            }
-        )
-
-    @staticmethod
-    def on_error(ws, error):
-        logger.error(error)
-
-    @staticmethod
-    def on_close(ws):
-        logger.error(f'与 msf notify 的连接异常关闭')
-
-
-class Console:
-    def __init__(self, channel_name: str):
-        self.channel_name = channel_name
-        self.token = settings.MSFCONFIG['JSONRPC']['TOKEN']
-        host = settings.MSFCONFIG['HOST']
-        port = settings.MSFCONFIG['JSONRPC']['PORT']
-        self.ws_addr = f'ws://{host}:{port}/api/v1/websocket/console'
+class BaseWS:
+    def __init__(self, receiver_name: str):
+        self.receiver_name = receiver_name
         self.channel_layer = channels.layers.get_channel_layer()
         # lambda 函数主要是为了把 self 传入 callback function
         self.ws = websocket.WebSocketApp(
-            self.ws_addr,
-            header = {'Authorization': f'Bearer {self.token}'},
+            self.get_ws_addr(),
+            header = {'Authorization': f'Bearer {self.jsonrpc_token}'},
             on_open = lambda ws: self.on_open(ws),
             on_message = lambda ws, msg: self.on_message(ws, msg),
             on_error = lambda ws, msg: self.on_error(ws, msg),
@@ -81,37 +27,70 @@ class Console:
         wst = threading.Thread(target=self.ws.run_forever)
         wst.daemon = True
         wst.start()
+    
+    @property
+    def jsonrpc_token(self):
+        return settings.MSFCONFIG['JSONRPC']['TOKEN']
+        self.ws = websocket.WebSocketApp
+    
+    @property
+    def jsonrpc_host(self):
+        return settings.MSFCONFIG['HOST']
+    
+    @property
+    def jsonrpc_port(self):
+        return settings.MSFCONFIG['JSONRPC']['PORT']
 
+    def get_ws_addr(self):
+        raise NotImplementedError
+
+    def on_open(self, ws):
+        logger.info(f'<{self.__class__.__name__}> 与 msf 建立连接')
+    
+    def on_close(self, ws):
+        logger.info(f'<{self.__class__.__name__}> 与 msf 断开连接')
+    
+    def on_error(self, ws, error):
+        logger.error(f'<{self.__class__.__name__}> 与 msf 的连接出现错误, {error}')
+    
+    def on_message(self, ws, message):
+        raise NotImplementedError
+        
+# TODO: ws重连机制
+
+
+class Notify(BaseWS, metaclass=Singleton):
+    """msf 提醒，一个系统中只需要一个实例，无需close"""
+    def get_ws_addr(self):
+        return f'ws://{self.jsonrpc_host}:{self.jsonrpc_port}/api/v1/websocket/notify'
+
+    def on_message(self, ws, message):
+        async_to_sync(ws.channel_layer.group_send)(
+            ws.receiver_name,
+            {
+                'type': 'send_message',
+                'message': message
+            }
+        )
+
+
+class Console(BaseWS):
     def __getattr__(self, name):
         if hasattr(self.ws, name):
             return getattr(self.ws, name)
         raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
 
-    @property
-    def cid(self):
-        while True:
-            if hasattr(self, 'console_id'):
-                return self.console_id
-            self.ws.send('\r\n')
-            time.sleep(1)
-
-    def on_open(self, ws):
-        logger.info(f'与 msf console 建立连接')
+    def get_ws_addr(self):
+        return f'ws://{self.jsonrpc_host}:{self.jsonrpc_port}/api/v1/websocket/console'
 
     def on_message(self, ws, message):
         data = json.loads(message)
-        self.console_id = data['cid']
+        self.cid = data['cid']
         self.prompt = data['prompt']
         async_to_sync(self.channel_layer.send)(
-            self.channel_name,
+            self.receiver_name,
             {
                 'type': 'pack_msf_output',
                 'message': message
             }
         )
-
-    def on_error(self, ws, error):
-        logger.error(error)
-
-    def on_close(self, ws):
-        logger.error(f'与 msf console 的连接异常关闭')
