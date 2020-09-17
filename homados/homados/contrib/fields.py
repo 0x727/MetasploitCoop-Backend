@@ -1,6 +1,10 @@
-from django.db import models
-from rubymarshal import reader
 import base64
+import json
+
+from django.db import models
+from django.utils.translation import gettext_lazy as _
+from rest_framework.fields import Field
+from rubymarshal import reader
 
 
 class RubyHashField(models.TextField):
@@ -39,3 +43,25 @@ class UnlimitedCharField(models.CharField):
     def check(self, **kwargs):
         # likewise, want to skip CharField.__check__
         return super(models.CharField, self).check(**kwargs)
+
+
+class MyJSONField(Field):
+    default_error_messages = {
+        'invalid': _('Value must be valid JSON.')
+    }
+
+    def __init__(self, *args, **kwargs):
+        self.ensure_ascii = kwargs.pop('ensure_ascii', True)
+        self.encoder = kwargs.pop('encoder', None)
+        super().__init__(*args, **kwargs)
+
+    def to_internal_value(self, data):
+        try:
+            return json.dumps(data, cls=self.encoder, ensure_ascii=self.ensure_ascii)
+        except (TypeError, ValueError):
+            self.fail('invalid')
+        return data
+
+    def to_representation(self, value):
+        value = json.loads(value, cls=self.encoder)
+        return value

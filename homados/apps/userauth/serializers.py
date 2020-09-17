@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 from rest_framework import serializers
+from homados.contrib.fields import MyJSONField
 
 from .models import Log
 
@@ -48,7 +49,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
 
 class LogSerializer(serializers.ModelSerializer):
-    info = serializers.JSONField()
+    info = MyJSONField(ensure_ascii=False)
     time_since_created = serializers.SerializerMethodField()
 
     class Meta:

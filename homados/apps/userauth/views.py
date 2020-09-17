@@ -55,6 +55,6 @@ class AuthViewSet(PackResponseMixin, viewsets.GenericViewSet):
 class LogViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Log.objects.all()
     serializer_class = LogSerializer
-    permission_class = [IsAuthenticated]
+    permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['info', 'ltype']
