@@ -1,6 +1,7 @@
 {
     "python.autoComplete.extraPaths": [
-        "./homados"
+        "./homados",
+        "./homados/apps"
     ],
     "files.watcherExclude": {
         "**/.git/objects/**": true,
@@ -16,6 +17,6 @@
     "python.linting.pylintArgs": [
         "--max-line-length", "120",
         "--load-plugins", "pylint_django",
-        "--init-hook", "import sys; sys.path.extend(['${workspaceFolder}/homados',]);"
+        "--init-hook", "import sys; sys.path.extend(['${workspaceFolder}/homados', './homados/apps']);"
     ]
 }

@@ -40,9 +40,6 @@ DATABASES = {
 }
 
 
-DATABASE_ROUTERS = ['homados.contrib.dbrouters.MsfRouter']
-
-
 # msf 服务端相关配置
 
 MSFCONFIG = {

@@ -205,6 +205,9 @@ LOGGER = logging.getLogger("homados")
 SESSION_CUSTOM_HEADER = "X-Token"
 
 
+DATABASE_ROUTERS = ['homados.contrib.dbrouters.MsfRouter']
+
+
 # Channels
 ASGI_APPLICATION = 'homados.routing.application'
 

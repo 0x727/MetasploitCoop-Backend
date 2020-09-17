@@ -13,6 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from dbmsf.serializers import Session, SessionEvent, SessionEventSerializer
+from libs.utils import report_msfjob_event
 
 from homados.contrib.exceptions import (MissParamError, MSFJSONRPCError,
                                         UnknownError)
@@ -20,6 +21,7 @@ from homados.contrib.mymixins import PackResponseMixin
 from homados.contrib.viewsets import (ListDestroyViewSet,
                                       NoUpdateRetrieveViewSet, NoUpdateViewSet)
 from libs.pymetasploit.jsonrpc import MsfJsonRpc, MsfRpcError
+from libs.utils import get_user_ident
 
 from .models import Modules
 from .serializers import ModuleSerializer
@@ -298,6 +300,7 @@ class LootViewSet(PackResponseMixin, NoUpdateViewSet):
             filename = file.name
             data = file.read()
             result = msfjsonrpc.core.loot_upload(filename, data)
+            report_msfjob_event(f'{get_user_ident(request.user)} 上传文件 {filename} 到中转区')
             return Response(data=result)
         except (KeyError, ) as e:
             raise MissParamError(body_params=['file'])
@@ -380,6 +383,7 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
                     continue
                 module_payload[k] = v
             result = module_exploit.execute(payload=module_payload)
+            report_msfjob_event(f'{get_user_ident(request.user)} 创建监听器 {payload_type}')
             return Response(data=result)
         except (KeyError, ) as e:
             raise MissParamError(body_params=['PAYLOAD'])
@@ -393,7 +397,9 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
         return Response(data=data)
 
     def destroy(self, request, *args, **kwargs):
-        result = msfjsonrpc.jobs.stop(kwargs[self.lookup_field])
+        job_id = kwargs[self.lookup_field]
+        result = msfjsonrpc.jobs.stop(job_id)
+        report_msfjob_event(f'{get_user_ident(request.user)} 删除监听器 job_id: {job_id}')
         return Response(data=result)
     
     @action(methods=["POST"], detail=True, url_path='genStagers')

@@ -1,5 +1,8 @@
-from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.utils.timezone import now
+from rest_framework import serializers
+
+from .models import Log
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -42,3 +45,15 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         user.set_password(validated_data["password"])
         user.save()
         return user
+
+
+class LogSerializer(serializers.ModelSerializer):
+    info = serializers.JSONField()
+    time_since_created = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Log
+        fields = '__all__'
+
+    def get_time_since_created(self, obj):
+        return (now() - obj.created).total_seconds()
