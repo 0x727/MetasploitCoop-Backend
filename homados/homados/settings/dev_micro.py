@@ -5,6 +5,9 @@ import os
 DEBUG = True
 
 
+LOGGER = logging.getLogger("dev")
+
+
 ALLOWED_HOSTS = ['*']
 
 
@@ -45,7 +48,7 @@ DATABASE_ROUTERS = ['homados.contrib.dbrouters.MsfRouter']
 MSFCONFIG = {
     'HOST': os.getenv('MSF_HOST') or '127.0.0.1',
     'JSONRPC': {
-        'PORT': os.getenv('MSF_JSONRPC_PORT') or '55553',
+        'PORT': os.getenv('MSF_JSONRPC_PORT') or '55554',
         'TOKEN': os.getenv('MSF_WS_JSON_RPC_API_TOKEN') or 'homados',
     },
 }
