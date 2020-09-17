@@ -295,7 +295,6 @@ class LootViewSet(PackResponseMixin, NoUpdateViewSet):
     def create(self, request, *args, **kwargs):
         try:
             file = request.data['file']
-            print(file)
             filename = file.name
             data = file.read()
             result = msfjsonrpc.core.loot_upload(filename, data)
