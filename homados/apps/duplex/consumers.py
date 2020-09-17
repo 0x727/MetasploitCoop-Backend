@@ -82,12 +82,19 @@ class MsfConsoleCustomer(BaseCustomer):
                 self.send_input_feedback(extra_str)
                 self.cache.msfconsole_input_cache_append(extra_str)
             else:
-                extra_str = "\r\n"
-                for one in tabs:
-                    extra_str += one + "\r\n"
-                prompt = self.console.prompt
-                extra_str = extra_str + prompt + cache_input
-                self.send_input_feedback(extra_str)
+                tmp = self.handle_tabs(cache_input, tabs)
+                # 如果返回的结果与之前的输入不相等则有补全，否则列出所有的补全项
+                if tmp != cache_input:
+                    extra_str = tmp[len(cache_input):]
+                    self.send_input_feedback(extra_str)
+                    self.cache.msfconsole_input_cache_append(extra_str)
+                else:
+                    extra_str = "\r\n"
+                    for one in tabs:
+                        extra_str += one + "\r\n"
+                    prompt = self.console.prompt
+                    extra_str = extra_str + prompt + cache_input
+                    self.send_input_feedback(extra_str)
         elif input_data == "\x1b[A":  # 上键
             clear_cmd = self.cache.msfconsole_input_cache_clear_online()
             self.send_input_feedback(clear_cmd)
@@ -116,7 +123,25 @@ class MsfConsoleCustomer(BaseCustomer):
             self.cache.msfconsole_input_cache_append(input_data)
             self.send_input_feedback(input_data)
 
+    def handle_tabs(self, cur_input, tabs):
+        """根据当前的输入从诸多的自动补全中达到一个最长的补全结果
+
+        例子：handle_tabs('he', ['help/xxx', 'help/fff']) -> 'help/'
+        """
+        newlength = len(cur_input) + 1
+        return_str = cur_input
+        while True:
+            if newlength >= len(tabs[0]):
+                return tabs[0][0:newlength]
+            tmp_str = tabs[0][0:newlength]
+            for one_tab in tabs:
+                if tmp_str not in one_tab:
+                    return return_str
+            return_str = tmp_str
+            newlength = newlength + 1
+
     def send_input_feedback(self, data=''):
+        """给前端回送消息"""
         message = {}
         message['status'] = 0
         message['data'] = data
