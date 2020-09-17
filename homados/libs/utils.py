@@ -30,13 +30,14 @@ def get_user_ident(user):
     return getattr(user, 'username', '') or getattr(user, 'email', '')
 
 
-def report_event(msg, ltype='default', callback=None):
+def report_event(msg, data=None, ltype='default', callback=None):
     """事件报告写入日志"""
     try:
         data = {
             'ltype': ltype,
             'info': {
-                'data': msg,
+                'msg': msg,
+                'data': data,
             },
         }
         serializer = LogSerializer(data=data)

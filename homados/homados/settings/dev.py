@@ -5,41 +5,54 @@ import os
 DEBUG = True
 
 
+LOGGER = logging.getLogger("dev")
+
+
 ALLOWED_HOSTS = ['*']
 
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
+_pg_user = os.getenv('HOMADOS_PG_USER') or 'postgres'
+_pg_pass = os.getenv('HOMADOS_PG_PASS') or 'homados@123'
+_pg_host = os.getenv('HOMADOS_PG_SERVER') or '127.0.0.1'
+_pg_port = os.getenv('HOMADOS_PG_PORT') or '5432'
+
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'homados',
-        'USER': os.getenv('HOMADOS_PG_USER') or 'postgres',
-        'PASSWORD': os.getenv('HOMADOS_PG_PASS') or '19971030',
-        'HOST': os.getenv('HOMADOS_PG_SERVER') or '192.168.174.136',
-        'PORT': os.getenv('HOMADOS_PG_PORT') or '5433',
+        'USER': _pg_user,
+        'PASSWORD': _pg_pass,
+        'HOST': _pg_host,
+        'PORT': _pg_port,
     },
     'msf': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'msf',
-        'USER': 'msf',
-        'PASSWORD': 'qzteRjxSmkJaXZKo4E5xaIXVxr1POUy8JyheinJmgrk=',
-        'HOST': '192.168.174.136',
-        'PORT': '5433',
+        'USER': _pg_user,
+        'PASSWORD': _pg_pass,
+        'HOST': _pg_host,
+        'PORT': _pg_port,
     }
 }
-
-
-DATABASE_ROUTERS = ['homados.contrib.dbrouters.MsfRouter']
 
 
 # msf 服务端相关配置
 
 MSFCONFIG = {
-    'HOST': os.getenv('MSF_HOST') or '192.168.174.136',
+    'HOST': os.getenv('MSF_HOST') or '127.0.0.1',
     'JSONRPC': {
         'PORT': os.getenv('MSF_JSONRPC_PORT') or '55553',
         'TOKEN': os.getenv('MSF_WS_JSON_RPC_API_TOKEN') or 'homados',
     },
+}
+
+# 通道层
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
 }

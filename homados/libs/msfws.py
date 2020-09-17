@@ -65,8 +65,12 @@ class Notify(BaseWS, metaclass=Singleton):
         return f'ws://{self.jsonrpc_host}:{self.jsonrpc_port}/api/v1/websocket/notify'
 
     def on_message(self, ws, message):
-        async_to_sync(ws.channel_layer.group_send)(
-            ws.receiver_name,
+        self.send_ws_msg(message)
+
+    
+    def send_ws_msg(self, message):
+        async_to_sync(self.channel_layer.group_send)(
+            self.receiver_name,
             {
                 'type': 'send_message',
                 'message': message
