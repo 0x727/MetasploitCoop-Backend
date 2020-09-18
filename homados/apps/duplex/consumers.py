@@ -1,12 +1,15 @@
+import base64
 import json
-from django.conf import settings
-from channels.generic.websocket import WebsocketConsumer
-from asgiref.sync import async_to_sync
-from django.contrib.auth.models import AnonymousUser
-from libs.msfws import Notify, Console
-from homados.contrib.cache import MsfConsoleCache
-from libs.pymetasploit.jsonrpc import MsfJsonRpc, MsfRpcError
 
+import chardet
+from asgiref.sync import async_to_sync
+from channels.generic.websocket import WebsocketConsumer
+from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
+
+from homados.contrib.cache import MsfConsoleCache
+from libs.msfws import Console, Notify
+from libs.pymetasploit.jsonrpc import MsfJsonRpc, MsfRpcError
 
 logger = settings.LOGGER
 
@@ -49,13 +52,24 @@ class MsfConsoleCustomer(BaseCustomer):
         message = event['message']
         message = json.loads(message)
         logger.debug(message)
-        data: str = message.get('data', '').replace('\n', '\r\n')
+        data: str = message.get('data', '')
+        if data:
+            data_bytes = base64.b64decode(data)
+            result = chardet.detect(data_bytes)
+            data = data_bytes.decode(result['encoding'])
+        data = data.replace('\n', '\r\n')
         prompt: str = message.get('prompt', '')
         data += prompt
+        # 有消息来的时候清空输入缓冲区
+        self.cache.msfconsole_input_cache_clear()
         self.send_input_feedback(data)
     
     def key_enter_handler(self, cache_input):
         """处理回车键"""
+        # 如果上一次是回车（连续回车）返回prompt
+        if not cache_input:
+            self.send_input_feedback('\r\n' + self.console.prompt)
+            return
         self.cache.msfconsole_history_add(cache_input)
         if cache_input.lower() == 'exit -f':
             cache_input = 'exit'
@@ -193,4 +207,3 @@ class MsfNotifyCustomer(BaseCustomer):
     def disconnect(self, code):
         async_to_sync(self.channel_layer.group_discard)(CustomerGroup.MsfNotify, self.channel_name)
         return super().disconnect(code)
-
