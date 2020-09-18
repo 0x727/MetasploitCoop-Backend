@@ -132,6 +132,7 @@ class MsfRpcMethod:
     SessionRingClear = 'session.ring_clear'
     SessionMeterpreterWrite = 'session.meterpreter_write'
     SessionMeterpreterExecute = 'session.meterpreter_execute'
+    SessionMeterpreterCmdExec = 'session.meterpreter_cmdexec'
     SessionMeterpreterSessionDetach = 'session.meterpreter_session_detach'
     SessionMeterpreterSessionKill = 'session.meterpreter_session_kill'
     SessionMeterpreterTabs = 'session.meterpreter_tabs'
@@ -882,6 +883,18 @@ class MeterpreterSession(MsfSession):
         if not cmd.endswith('\n'):
             cmd += '\n'
         return self.rpc.call(MsfRpcMethod.SessionMeterpreterExecute, [self.sid, cmd])['data']
+    
+    def cmd_exec(self, cmd, args, timeout=15):
+        """使用目标机系统shell执行命令
+        
+        Args:
+            cmd: 命令
+            args: 命令参数
+            timeout: 接收结果超时
+        """
+        if isinstance(args, list):
+            args = ' '.join(args)
+        return self.rpc.call(MsfRpcMethod.SessionMeterpreterCmdExec, [self.sid, cmd.strip(), args.strip(), timeout])
 
     def runsingle(self, data):
         """

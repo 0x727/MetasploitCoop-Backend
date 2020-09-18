@@ -22,6 +22,7 @@ from homados.contrib.viewsets import (ListDestroyViewSet,
                                       NoUpdateRetrieveViewSet, NoUpdateViewSet)
 from libs.pymetasploit.jsonrpc import MsfJsonRpc, MsfRpcError
 from libs.utils import get_user_ident
+from libs.disable_command_handler import disable_command_handler
 
 from .models import Modules
 from .serializers import ModuleSerializer
@@ -29,7 +30,11 @@ from .serializers import ModuleSerializer
 
 logger = settings.LOGGER
 
-msfjsonrpc = MsfJsonRpc(server=settings.MSFCONFIG['HOST'], port=settings.MSFCONFIG['JSONRPC']['PORT'], token=settings.MSFCONFIG['JSONRPC']['TOKEN'])
+msfjsonrpc = MsfJsonRpc(
+    server=settings.MSFCONFIG['HOST'],
+    port=settings.MSFCONFIG['JSONRPC']['PORT'],
+    token=settings.MSFCONFIG['JSONRPC']['TOKEN'],
+)
 
 
 class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
@@ -166,9 +171,15 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             command = request.data['command']
             if not command:
                 return Response(data='')
-            shell = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
-            result = shell.execute_cmd(command)
-            return Response(data=result)
+            for k, v in disable_command_handler.items():
+                if not k.search(command.strip()):
+                    continue
+                result = v(command.strip(), sid=kwargs[self.lookup_field])
+                return Response(data=result.tips)
+            else:
+                shell = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
+                result = shell.write(command)
+                return Response(data='running...')
         except (KeyError, ) as e:
             raise MissParamError(body_params=['command'])
         except MsfRpcError as e:
