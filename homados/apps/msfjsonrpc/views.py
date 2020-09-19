@@ -168,18 +168,18 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
     @action(methods=["POST"], detail=True, url_path='executeCmd')
     def execute_cmd(self, request, *args, **kwargs):
         try:
-            command = request.data['command']
+            command = request.data['command'].strip()
             if not command:
                 return Response(data='')
             for k, v in disable_command_handler.items():
-                if not k.search(command.strip()):
+                if not k.search(command):
                     continue
-                result = v(command.strip(), sid=kwargs[self.lookup_field])
+                result = v(command, sid=kwargs[self.lookup_field])
                 return Response(data=result.tips)
             else:
                 shell = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
                 result = shell.write(command)
-                return Response(data='running...')
+                return Response(data=f'{command} running...')
         except (KeyError, ) as e:
             raise MissParamError(body_params=['command'])
         except MsfRpcError as e:

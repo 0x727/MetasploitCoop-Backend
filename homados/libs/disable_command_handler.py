@@ -41,7 +41,7 @@ def handle_command_shell(command: str, instance=None, *args, **kwargs):
     command = cmd_args.pop(0)
     args = cmd_args
     msfjsonrpc.sessions.session(int(kwargs['sid'])).cmd_exec(command, args, timeout=120)
-    return CommandTips(True, 'running...')
+    return CommandTips(True, 'cmd exec running...')
     
 
 disable_command_handler = {

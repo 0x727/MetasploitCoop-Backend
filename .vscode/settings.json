@@ -18,5 +18,9 @@
         "--max-line-length", "120",
         "--load-plugins", "pylint_django",
         "--init-hook", "import sys; sys.path.extend(['${workspaceFolder}/homados', './homados/apps']);"
+    ],
+    "python.analysis.extraPaths": [
+        "./homados",
+        "./homados/apps"
     ]
 }
