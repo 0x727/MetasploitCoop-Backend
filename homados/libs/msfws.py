@@ -42,7 +42,7 @@ class BaseWS:
         raise NotImplementedError
 
     def connect_to_ws(self):
-        wst = threading.Thread(target=self.ws.run_forever)
+        wst = threading.Thread(target=self.ws.run_forever(ping_interval=60, ping_timeout=5))
         wst.daemon = True
         wst.start()
 
@@ -67,7 +67,6 @@ class Notify(BaseWS, metaclass=Singleton):
     def on_message(self, ws, message):
         self.send_ws_msg(message)
 
-    
     def send_ws_msg(self, message):
         async_to_sync(self.channel_layer.group_send)(
             self.receiver_name,
@@ -80,7 +79,7 @@ class Notify(BaseWS, metaclass=Singleton):
     def connect_to_ws(self):
         """支持自动重连"""
         def reconnect():
-            while self.ws.run_forever():
+            while self.ws.run_forever(ping_interval=60, ping_timeout=5):
                 logger.info(f'<{self.__class__.__name__}> 正在尝试重连')
         wst = threading.Thread(target=reconnect)
         wst.daemon = True
