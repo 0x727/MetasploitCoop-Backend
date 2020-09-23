@@ -17,9 +17,9 @@ msfjsonrpc = MsfJsonRpc(server=settings.MSFCONFIG['HOST'], port=settings.MSFCONF
 
 
 class CustomerGroup:
-    __solts__ = ['MsfNotify', 'MsfConsole']
-    MsfNotify = 'MsfNotify'
-    MsfCOnsole = 'MsfConsole'
+    __solts__ = ['Notify', 'MsfConsole']
+    Notify = 'Notify'
+    MsfConsole = 'MsfConsole'
 
 
 class BaseCustomer(WebsocketConsumer):
@@ -46,7 +46,6 @@ class MsfConsoleCustomer(BaseCustomer):
 
     def disconnect(self, code):
         self.console.close()
-        return super().disconnect(code)
     
     def pack_msf_output(self, event):
         message = event['message']
@@ -201,9 +200,8 @@ class MsfConsoleCustomer(BaseCustomer):
 class MsfNotifyCustomer(BaseCustomer):
     def connect(self):
         super().connect()
-        async_to_sync(self.channel_layer.group_add)(CustomerGroup.MsfNotify, self.channel_name)
-        Notify(CustomerGroup.MsfNotify)
+        async_to_sync(self.channel_layer.group_add)(CustomerGroup.Notify, self.channel_name)
+        Notify(CustomerGroup.Notify)
     
     def disconnect(self, code):
-        async_to_sync(self.channel_layer.group_discard)(CustomerGroup.MsfNotify, self.channel_name)
-        return super().disconnect(code)
+        async_to_sync(self.channel_layer.group_discard)(CustomerGroup.Notify, self.channel_name)

@@ -188,7 +188,7 @@ class MsfJsonRpc:
     
     @retry(tries=3, delay=1, backoff=2)
     def post_request(self, url, payload):
-        return requests.post(url, json=payload, auth=BearerTokenAuth(self.token),verify=False)
+        return requests.post(url, json=payload, auth=BearerTokenAuth(self.token), verify=False)
     
     @property
     def core(self):
