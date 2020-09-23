@@ -10,6 +10,7 @@ from django.db.models import Count
 from django.db.models import Q
 from django.http import FileResponse
 from rest_framework import exceptions, filters, status, viewsets
+from django_filters import rest_framework as rich_filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -27,6 +28,7 @@ from libs.disable_command_handler import disable_command_handler
 
 from .models import Modules
 from .serializers import ModuleSerializer
+from .filters import ModuleFilter
 
 
 logger = settings.LOGGER
@@ -44,6 +46,7 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["ref_name"]
+    filterset_class = ModuleFilter
 
     def list(self, request, *args, **kwargs):
         if Modules.objects.count() == 0:
@@ -77,22 +80,12 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
         data = list(Modules.objects.values('type').annotate(count=Count('id')))
         return Response(data=data)
 
-    @action(detail=False, url_path='ref_names')
+    @action(detail=False, url_path='ref_names', filter_backends=(rich_filters.DjangoFilterBackend,))
     def get_ref_names(self, request, *args, **kwargs):
         """过滤模块标识"""
         try:
-            filter_params = {}
-            fields = set([f.name for f in Modules._meta.fields])
-            for k, v in request.query_params.items():
-                if not (v and k in fields):
-                    continue
-                for special_field in ['platform', 'arch']:
-                    if k.lower() == special_field:
-                        filter_params[f'{special_field}__icontains'] = v
-                        break
-                else:
-                    filter_params[k] = v
-            data = list(Modules.objects.filter(**filter_params).values('id', 'ref_name'))
+            queryset = self.filter_queryset(self.get_queryset())
+            data = list(queryset.values('id', 'ref_name'))
             return Response(data=data)
         except Exception as e:
             raise UnknownError
