@@ -22,7 +22,9 @@ class BaseWS:
             on_open = lambda ws: self.on_open(ws),
             on_message = lambda ws, msg: self.on_message(ws, msg),
             on_error = lambda ws, msg: self.on_error(ws, msg),
-            on_close = lambda ws: self.on_close(ws)
+            on_close = lambda ws: self.on_close(ws),
+            on_ping = lambda ws, data: self.on_ping(ws, data),
+            on_pong = lambda ws, data: self.on_pong(ws, data),
         )
         self.connect_to_ws()
     
@@ -42,7 +44,9 @@ class BaseWS:
         raise NotImplementedError
 
     def connect_to_ws(self):
-        wst = threading.Thread(target=self.ws.run_forever(ping_interval=60, ping_timeout=5))
+        def _to_connect():
+            self.ws.run_forever(ping_interval=60, ping_timeout=5)
+        wst = threading.Thread(target=_to_connect)
         wst.daemon = True
         wst.start()
 
@@ -54,6 +58,12 @@ class BaseWS:
     
     def on_error(self, ws, error):
         logger.error(f'<{self.__class__.__name__}> 与 msf 的连接出现错误, {error}')
+    
+    def on_ping(self, ws, data):
+        logger.debug(f'<{self.__class__.__name__}> 发送 ping, {data}')
+    
+    def on_pong(self, ws, data):
+        logger.debug(f'<{self.__class__.__name__}> 接收 pong, {data}')
     
     def on_message(self, ws, message):
         raise NotImplementedError
@@ -80,6 +90,7 @@ class Notify(BaseWS, metaclass=Singleton):
         """支持自动重连"""
         def reconnect():
             while self.ws.run_forever(ping_interval=60, ping_timeout=5):
+                time.sleep(5)
                 logger.info(f'<{self.__class__.__name__}> 正在尝试重连')
         wst = threading.Thread(target=reconnect)
         wst.daemon = True
