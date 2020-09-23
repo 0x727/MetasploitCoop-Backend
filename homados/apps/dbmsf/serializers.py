@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Session, SessionEvent
+from .models import ModuleResult, Session, SessionEvent, ModuleResult
 from homados.contrib.serializerfields import BinaryTextField
 
 
@@ -20,3 +20,13 @@ class SessionEventSerializer(serializers.ModelSerializer):
         model = SessionEvent
         fields = '__all__'
         # exclude = ('session', )
+
+
+class ModuleResultSerializer(serializers.ModelSerializer):
+    output = BinaryTextField()
+    sid = serializers.IntegerField(source='session.local_id', allow_null=True)
+
+    class Meta:
+        model = ModuleResult
+        # fields = '__all__'
+        exclude = ('session', )

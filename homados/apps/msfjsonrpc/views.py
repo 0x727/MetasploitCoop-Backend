@@ -1,6 +1,7 @@
 import base64
 import functools
 import io
+from django.http import request
 
 import html2text
 from django.conf import settings
@@ -144,6 +145,21 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
             raise MSFJSONRPCError
         except Exception as e:
             raise UnknownError
+    
+    @action(detail=True, methods=['POST'], url_path='execute')
+    def execute(self, request, *args, **kwargs):
+        try:
+            options = dict(request.data)
+            module = self.get_object()
+            mod = msfjsonrpc.modules.use(module.type, module.ref_name)
+            for k, v in options.items():
+                mod[k.upper()] = v
+            data = mod.execute()
+            return Response(data=data)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
+        except Exception as e:
+            raise UnknownError
 
 
 class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
@@ -218,6 +234,20 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             session = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
             data = session.dir_list(dirpath)
             return Response(data=data)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
+        except Exception as e:
+            raise UnknownError
+    
+    @action(methods=['GET'], detail=True, url_path='catFile')
+    def cat_file(self, request, *args, **kwargs):
+        try:
+            filepath = request.query_params['filepath'].strip()
+            session = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
+            data = session.execute_cmd(f'cat "{filepath}"')
+            return Response(data=data)
+        except KeyError as e:
+            raise MissParamError(query_params=['filepath'])
         except MsfRpcError as e:
             raise MSFJSONRPCError(str(e))
         except Exception as e:

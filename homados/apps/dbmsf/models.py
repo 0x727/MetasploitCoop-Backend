@@ -38,3 +38,17 @@ class SessionEvent(models.Model):
 
     class Meta:
         db_table = 'session_events'
+
+
+class ModuleResult(models.Model):
+    """模块结果"""
+    id = models.AutoField(primary_key=True)
+    session = models.ForeignKey(to='dbmsf.Session', db_constraint=False, on_delete=models.DO_NOTHING, 
+                                db_column='session_id', related_name='module_results', verbose_name='会话id')
+    track_uuid = models.CharField(max_length=20, verbose_name='执行模块任务uuid')
+    fullname = models.CharField(max_length=200, verbose_name='模块名')
+    output = models.BinaryField(verbose_name='输出')
+    created_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'module_results'
