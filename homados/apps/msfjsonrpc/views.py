@@ -67,7 +67,7 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
             Modules.objects.bulk_create(modules)
             return Response()
         except MsfRpcError as e:
-            raise MSFJSONRPCError
+            raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
 
@@ -79,13 +79,23 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, url_path='ref_names')
     def get_ref_names(self, request, *args, **kwargs):
-        """根据指定类型列所有模块标识"""
+        """过滤模块标识"""
         try:
-            mtype = request.query_params['type']
-            data = list(Modules.objects.filter(type=mtype).values('id', 'ref_name'))
+            filter_params = {}
+            fields = set([f.name for f in Modules._meta.fields])
+            for k, v in request.query_params.items():
+                if not (v and k in fields):
+                    continue
+                for special_field in ['platform', 'arch']:
+                    if k.lower() == special_field:
+                        filter_params[f'{special_field}__icontains'] = v
+                        break
+                else:
+                    filter_params[k] = v
+            data = list(Modules.objects.filter(**filter_params).values('id', 'ref_name'))
             return Response(data=data)
-        except KeyError as e:
-            raise MissParamError(query_params=['type'])
+        except Exception as e:
+            raise UnknownError
     
     @action(detail=True, url_path='info_html')
     def get_info_html(self, request, *args, **kwargs):
@@ -149,10 +159,9 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     @action(detail=True, methods=['POST'], url_path='execute')
     def execute(self, request, *args, **kwargs):
         try:
-            options = dict(request.data)
             module = self.get_object()
             mod = msfjsonrpc.modules.use(module.type, module.ref_name)
-            for k, v in options.items():
+            for k, v in request.data.items():
                 mod[k.upper()] = v
             data = mod.execute()
             return Response(data=data)
