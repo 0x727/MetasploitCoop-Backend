@@ -41,7 +41,7 @@ class AuthViewSet(PackResponseMixin, viewsets.GenericViewSet):
     def logout(self, request, *args, **kwargs):
         auth.logout(request)
         report_auth_event(f"{get_user_ident(request.user)} 登出平台")
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response('登出平台成功')
     
     @action(methods=["GET"], detail=False, url_path="info")
     def info(self, request, *args, **kwargs):
