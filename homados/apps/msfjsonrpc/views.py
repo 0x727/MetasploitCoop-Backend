@@ -14,6 +14,7 @@ from django_filters import rest_framework as rich_filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.exceptions import APIException
 from dbmsf.serializers import Session, SessionEvent, SessionEventSerializer
 from libs.utils import report_msfjob_event
 
@@ -141,7 +142,7 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
             module.save()
             return Response(data=module.options)
         except ObjectDoesNotExist as e:
-            raise exceptions.NotFound
+            raise APIException(detail='模块未找到，可能你需要刷新模块缓存', code=404)
         except KeyError as e:
             raise MissParamError(query_params=['ref_name'])
         except MsfRpcError as e:
