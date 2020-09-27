@@ -1,5 +1,6 @@
+from django.db.models import fields
 from rest_framework import serializers
-from .models import ModuleResult, Session, SessionEvent, ModuleResult
+from .models import ModuleResult, Session, SessionEvent, ModuleResult, MetasploitCredentialCore
 from homados.contrib.serializerfields import BinaryTextField
 
 
@@ -30,3 +31,10 @@ class ModuleResultSerializer(serializers.ModelSerializer):
         model = ModuleResult
         # fields = '__all__'
         exclude = ('session', )
+
+
+class MetasploitCredentialCoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MetasploitCredentialCore
+        fields = '__all__'
+        depth = 1
