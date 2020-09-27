@@ -141,6 +141,7 @@ class MsfRpcMethod:
     SessionMeterpreterProcessList = 'session.meterpreter_ps'
     SessionMeterpreterEditFile = 'session.meterpreter_edit_file'
     SessionMeterpreterUploadFile = 'session.meterpreter_upload_file'
+    SessionMeterpreterScreenshot = 'session.meterpreter_screenshot'
     SessionMeterpreterDirList = 'session.meterpreter_ls'
     SessionMeterpreterDirectorySeparator = 'session.meterpreter_directory_separator'
     SessionCompatibleModules = 'session.compatible_modules'
@@ -311,13 +312,12 @@ class CoreManager(MsfManager):
         - threadid : the thread ID.
         """
         self.rpc.call(MsfRpcMethod.CoreThreadKill, [threadid])
-    
-    @property
-    def loots(self):
+
+    def loots(self, path=''):
         """
         List file for loot_directory
         """
-        return self.rpc.call(MsfRpcMethod.CoreLootList)
+        return self.rpc.call(MsfRpcMethod.CoreLootList, [path])
     
     def loot_download(self, filename):
         """
@@ -329,7 +329,7 @@ class CoreManager(MsfManager):
         data = self.rpc.call(MsfRpcMethod.CoreLootDownload, [filename])['data']
         return base64.b64decode(data.encode())
     
-    def loot_upload(self, filename, data):
+    def loot_upload(self, path, data):
         """
         upload a file to loot_directory
 
@@ -338,7 +338,7 @@ class CoreManager(MsfManager):
             data: the content of file which is base64 encode
         """
         data_b64 = base64.b64encode(data).decode()
-        return self.rpc.call(MsfRpcMethod.CoreLootUpload, [filename, data_b64])
+        return self.rpc.call(MsfRpcMethod.CoreLootUpload, [path, data_b64])
 
     def loot_destroy(self, filename):
         """
@@ -1088,8 +1088,8 @@ class MeterpreterSession(MsfSession):
         result = self.rpc.call(MsfRpcMethod.SessionMeterpreterEditFile, [self.sid, filepath, filetext])
         return result
     
-    def upload_file(self, src, dest):
-        result = self.rpc.call(MsfRpcMethod.SessionMeterpreterUploadFile, [self.sid, src, dest])
+    def screenshot(self, quality=50):
+        result = self.rpc.call(MsfRpcMethod.SessionMeterpreterScreenshot, [self.sid, quality])
         return result
 
 

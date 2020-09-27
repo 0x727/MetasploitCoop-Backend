@@ -1,7 +1,9 @@
 import base64
 import functools
 import io
+import magic
 from django.http import request
+from pathlib import Path
 
 import html2text
 from django.conf import settings
@@ -295,61 +297,97 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             return Response(data=serializer.data)
         except Exception as e:
             raise UnknownError
+    
+    @action(methods=['GET'], detail=True, url_path='screenshot')
+    def screenshot(self, request, *args, **kwargs):
+        """截屏"""
+        try:
+            quality = int(request.query_params.get('quality', 50))
+            sid = kwargs[self.lookup_field]
+            session = msfjsonrpc.sessions.session(sid)
+            report_msfjob_event(f'{get_user_ident(request.user)} 正在对会话 {sid} 进行截屏操作')
+            result = session.screenshot(quality=quality)
+            return Response(data=result)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
+        except Exception as e:
+            raise UnknownError
 
 
 class LootViewSet(PackResponseMixin, NoUpdateViewSet):
     """msf loot 文件中转区视图集"""
-    lookup_field = 'filename'
-    lookup_value_regex = '[^/]+'
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
         try:
-            result = msfjsonrpc.core.loots
+            path = request.query_params.get('path', '')
+            result = msfjsonrpc.core.loots(path)
             return Response(data=result)
         except MsfRpcError as e:
-            raise MSFJSONRPCError
+            raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
-    
-    def retrieve(self, request, *args, **kwargs):
+
+    @action(methods=['POST'], detail=False, url_path='download')
+    def download_file(self, request, *args, **kwargs):
         try:
-            filename = kwargs[self.lookup_field]
-            data = msfjsonrpc.core.loot_download(filename)
+            path = request.data['path']
+            filename = Path(path).name
+            data = msfjsonrpc.core.loot_download(path)
             data = io.BytesIO(data)
             data.seek(0)
             return FileResponse(data, as_attachment=True, filename=filename)
         except (KeyError, ) as e:
-            raise MissParamError(query_params=['filename'])
+            raise MissParamError(query_params=['path'])
         except MsfRpcError as e:
-            raise MSFJSONRPCError
+            raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
-    
-    def destroy(self, request, *args, **kwargs):
+
+    @action(methods=['POST'], detail=False, url_path='delete')
+    def delete_file(self, request, *args, **kwargs):
         try:
-            filename = kwargs[self.lookup_field]
-            result = msfjsonrpc.core.loot_destroy(filename)
+            path = request.data['path']
+            result = msfjsonrpc.core.loot_destroy(path)
             return Response(data=result)
         except (KeyError, ) as e:
-            raise MissParamError(query_params=['filename'])
+            raise MissParamError(query_params=['path'])
         except MsfRpcError as e:
-            raise MSFJSONRPCError
+            raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
     
     def create(self, request, *args, **kwargs):
         try:
             file = request.data['file']
-            filename = file.name
+            dir = request.data['dir']
+            path = dir.rstrip('/') + '/' + file.name
             data = file.read()
-            result = msfjsonrpc.core.loot_upload(filename, data)
-            report_msfjob_event(f'{get_user_ident(request.user)} 上传文件 {filename} 到中转区')
+            result = msfjsonrpc.core.loot_upload(path, data)
+            report_msfjob_event(f'{get_user_ident(request.user)} 上传文件 {path} 到中转区')
             return Response(data=result)
         except (KeyError, ) as e:
-            raise MissParamError(body_params=['file'])
+            raise MissParamError(body_params=['file', 'dir'])
         except MsfRpcError as e:
-            raise MSFJSONRPCError
+            raise MSFJSONRPCError(str(e))
+        except Exception as e:
+            raise UnknownError
+
+    @action(methods=['POST'], detail=False, url_path='preview')
+    def preview_file(slef, request, *args, **kwargs):
+        try:
+            path = request.data['path']
+            content = msfjsonrpc.core.loot_download(path)
+            ftype = magic.from_buffer(content, mime=True)
+            data = {
+                'content': base64.b64encode(content).decode(),
+                'ftype': ftype
+            }
+            return Response(data)
+        except (KeyError, ) as e:
+            raise MissParamError(query_params=['path'])
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
 
