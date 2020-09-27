@@ -42,8 +42,18 @@ def handle_command_shell(command: str, instance=None, *args, **kwargs):
     args = cmd_args
     msfjsonrpc.sessions.session(int(kwargs['sid'])).cmd_exec(command, args, timeout=120)
     return CommandTips(True, 'cmd exec running...')
+
+
+def handle_general_disable(msg: str):
+    def handle(command: str, instance=None, *args, **kwargs):
+        if 'sid' not in kwargs:
+            raise KeyError('缺少 sid 参数')
+        return CommandTips(False, msg)
+    return handle
     
 
 disable_command_handler = {
     re.compile(r'^shell$|^shell .*'): handle_command_shell,
+    re.compile(r'^run$|^run .*'): handle_general_disable('不支持run指令，请使用post模块代替'),
+    re.compile(r'^edit$|^edit .*'): handle_general_disable('不支持edit指令，请使用图形界面编辑'),
 }
