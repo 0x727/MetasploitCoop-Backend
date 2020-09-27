@@ -7,3 +7,4 @@ rubymarshal==1.2.7
 html2text==2020.1.16
 channels==2.4.0
 django-filter==2.3.0
+python-magic==0.4.18
