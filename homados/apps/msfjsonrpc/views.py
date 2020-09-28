@@ -257,6 +257,32 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
+    
+    @action(methods=['DELETE'], detail=True, url_path='delFile')
+    def delete_file(self, request, *args, **kwargs):
+        try:
+            paths = request.data['paths'] or []
+            dirs_for_del = []
+            files_for_del = []
+            for pathinfo in paths:
+                if pathinfo['isDir']:
+                    dirs_for_del.append(pathinfo['filepath'])
+                else:
+                    files_for_del.append(pathinfo['filepath'])
+            session = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
+            if dirs_for_del:
+                del_path_str = ' '.join([f'"{filepath}"' for filepath in dirs_for_del])
+                session.execute_cmd(f'rmdir {del_path_str}')
+            if files_for_del:
+                del_path_str = ' '.join([f'"{filepath}"' for filepath in files_for_del])
+                session.execute_cmd(f'rm {del_path_str}')
+            return Response(data='文件删除成功')
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
+        except (KeyError, AssertionError) as e:
+            raise MissParamError(body_params=['paths'])
+        except Exception as e:
+            raise UnknownError
 
     @action(methods=['PATCH'], detail=True, url_path='editFile')
     def edit_file(self, request, *args, **kwargs):
@@ -266,6 +292,8 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             session = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
             result = session.edit_file(filepath, filetext)
             return Response(data=result)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
         except (KeyError, ) as e:
             raise MissParamError(body_params=['filepath', 'filetext'])
         except Exception as e:
@@ -279,6 +307,8 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             session = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
             result = session.upload_file(src, dest)
             return Response(data=result)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
         except (KeyError, ) as e:
             raise MissParamError(body_params=['src', 'dest'])
         except Exception as e:
@@ -295,6 +325,8 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             session_events = db_session.session_events
             serializer = SessionEventSerializer(session_events, many=True)
             return Response(data=serializer.data)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
     
