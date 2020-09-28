@@ -5,11 +5,14 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import Field
 from rubymarshal import reader
+from rubymarshal.classes import Symbol, RubyObject
 
 
 class RubyHashField(models.TextField):
     """读取数据库中存入的ruby"""
     def to_python(self, value):
+        if not isinstance(value, str):
+            return value
         byte_text = base64.b64decode(value.encode())
         data = reader.loads(byte_text)
         return self.convert_to_dict(data)
@@ -17,17 +20,32 @@ class RubyHashField(models.TextField):
     def convert_to_dict(self, value: dict):
         result = {}
         for k, v in value.items():
-            # str(v) 主要是为了防止有些RubyString捣鬼
-            # str(k)[1:] 主要是因为 k 为 Symbol，例如 Symbol("WORKSPACE") str 后为 ":WORKSPACE"
-            k, v = str(k)[1:], str(v)
-            if v in ('true', 'false'):
-                result[k] = True if v.lower() == 'true' else False
-            elif v.isdigit():
-                result[k] = int(v)
-            elif v == '':
-                result[k] = None
+            # 处理key
+            new_k = ''
+            if isinstance(k, Symbol):
+                new_k = str(k)[1:]
+            elif isinstance(k, bytes):
+                new_k = k.decode()
             else:
-                result[k] = v
+                new_k = str(k)
+            # 处理value
+            new_v = ''
+            if isinstance(v, str):
+                if v in ('true', 'false'):
+                    new_v = True if v.lower() == 'true' else False
+                elif v.isdigit():
+                    new_v = int(v)
+                elif v == '':
+                    new_v = None
+                else:
+                    new_v = str(v)
+            elif isinstance(v, bytes):
+                new_v = v.decode()
+            elif isinstance(v, dict):
+                new_v = self.convert_to_dict(v)
+            else:
+                new_v = str(v)
+            result[new_k] = new_v
         return result
 
     def from_db_value(self, value, expression, connection):
