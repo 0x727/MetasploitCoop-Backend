@@ -200,7 +200,7 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             else:
                 shell = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
                 result = shell.write(command)
-                return Response(data=f'{command} running...')
+                return Response(data=f'hoamdos running...> {command}')
         except (KeyError, ) as e:
             raise MissParamError(body_params=['command'])
         except MsfRpcError as e:

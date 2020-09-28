@@ -33,15 +33,15 @@ def handle_command_shell(command: str, instance=None, *args, **kwargs):
     """
     if 'sid' not in kwargs:
         raise KeyError('缺少 sid 参数')
-    command = command.strip()
-    if not (command.startswith('shell ') and len(command) > len('shell ')):
+    cmd = command.strip()
+    if not (cmd.startswith('shell ') and len(cmd) > len('shell ')):
         return CommandTips(False, '不支持进入交互式shell，请使用shell whoami来执行')
-    command = command[len('shell '):]
-    cmd_args = command.split()
-    command = cmd_args.pop(0)
+    cmd = cmd[len('shell '):]
+    cmd_args = cmd.split()
+    cmd = cmd_args.pop(0)
     args = cmd_args
-    msfjsonrpc.sessions.session(int(kwargs['sid'])).cmd_exec(command, args, timeout=120)
-    return CommandTips(True, 'cmd exec running...')
+    msfjsonrpc.sessions.session(int(kwargs['sid'])).cmd_exec(cmd, args, timeout=120)
+    return CommandTips(True, 'hoamdos running...> {command}')
 
 
 def handle_general_disable(msg: str):
