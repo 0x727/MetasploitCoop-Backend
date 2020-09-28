@@ -1,9 +1,13 @@
-from .models import Session, SessionEvent, ModuleResult, MetasploitCredentialCore
-from .serializers import SessionSerializer, SessionEventSerializer, ModuleResultSerializer, MetasploitCredentialCoreSerializer
 from homados.contrib.mymixins import PackResponseMixin
 from rest_framework import viewsets
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+from .models import (Event, MetasploitCredentialCore, ModuleResult, Session,
+                     SessionEvent)
+from .serializers import (EventSerializer, MetasploitCredentialCoreSerializer,
+                          ModuleResultSerializer, SessionEventSerializer,
+                          SessionSerializer)
 
 
 class SessionViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
@@ -33,4 +37,10 @@ class ModuleResultViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
 class MetasploitCredentialCoreViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = MetasploitCredentialCore.objects.all()
     serializer_class = MetasploitCredentialCoreSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class EventViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
+    queryset = Event.objects.all()
+    serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]

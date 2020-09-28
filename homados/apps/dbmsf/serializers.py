@@ -1,6 +1,6 @@
 from django.db.models import fields
 from rest_framework import serializers
-from .models import ModuleResult, Session, SessionEvent, ModuleResult, MetasploitCredentialCore
+from .models import ModuleResult, Session, SessionEvent, ModuleResult, MetasploitCredentialCore, Event
 from homados.contrib.serializerfields import BinaryTextField
 
 
@@ -34,7 +34,35 @@ class ModuleResultSerializer(serializers.ModelSerializer):
 
 
 class MetasploitCredentialCoreSerializer(serializers.ModelSerializer):
+    host = serializers.CharField(source='origin.session.host.address')
+    sid = serializers.IntegerField(source='origin.session.local_id')
+    service = serializers.SerializerMethodField()
+    post_reference_name = serializers.CharField(source='origin.post_reference_name')
+    private = serializers.CharField(source='private.data')
+    private_type = serializers.CharField(source='private.type')
+    jtr_format = serializers.CharField(source='private.jtr_format')
+    public = serializers.CharField(source='public.username')
+    realm_key = serializers.CharField(source='realm.key')
+    realm_value = serializers.CharField(source='realm.value')
+    created_at = serializers.DateTimeField()
+    updated_at = serializers.DateTimeField()
+
     class Meta:
         model = MetasploitCredentialCore
+        fields = ('id', 'sid', 'service','host', 'post_reference_name', 'private', 'private_type',
+                    'jtr_format', 'public', 'realm_key', 'realm_value', 'created_at', 'updated_at')
+    
+    def get_service(self, obj):
+        logins = obj.cred_logins.all()
+        if not logins:
+            return ''
+        logins_info = set([f'{l.service.port}/{l.service.proto} ({l.service.name})' for l in logins])
+        return ', '.join(logins_info)
+
+
+class EventSerializer(serializers.ModelSerializer):
+    info = serializers.JSONField()
+
+    class Meta:
+        model = Event
         fields = '__all__'
-        depth = 1

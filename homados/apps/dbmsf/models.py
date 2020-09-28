@@ -4,6 +4,41 @@ from requests.sessions import session
 from homados.contrib.fields import RubyHashField, UnlimitedCharField
 
 
+class Workspace(models.Model):
+    """工作区表"""
+    id = models.AutoField(primary_key=True)
+    name = UnlimitedCharField(verbose_name='名称')
+    created_at = models.DateTimeField(verbose_name='创建时间')
+    updated_at = models.DateTimeField(verbose_name='更新时间')
+    boundary = models.CharField(max_length=4096)
+    description = models.CharField(max_length=4096, verbose_name='描述')
+    owner_id = models.IntegerField(verbose_name='创建者')
+    limit_to_network = models.BooleanField()
+    import_fingerprint = models.BooleanField()
+
+    class Meta:
+        db_table = 'workspaces'
+
+
+class Event(models.Model):
+    """时间表"""
+    id = models.AutoField(primary_key=True)
+    workspace = models.ForeignKey(to='dbmsf.Workspace', db_constraint=False, on_delete=models.DO_NOTHING, 
+                            db_column='workspace_id', related_name='events', verbose_name='工作区id')
+    host = models.ForeignKey(to='dbmsf.Host', db_constraint=False, on_delete=models.DO_NOTHING, 
+                            db_column='host_id', related_name='events', verbose_name='主机id')
+    created_at = models.DateTimeField(verbose_name='创建时间')
+    updated_at = models.DateTimeField(verbose_name='更新时间')
+    name = UnlimitedCharField(verbose_name='事件名')
+    critical = models.BooleanField(verbose_name='是否重要')
+    seen = models.BooleanField()
+    username = UnlimitedCharField()
+    info = RubyHashField(verbose_name='事件信息')
+
+    class Meta:
+        db_table = 'events'
+
+
 class Host(models.Model):
     """主机表"""
     id = models.AutoField(primary_key=True)
@@ -33,6 +68,9 @@ class Host(models.Model):
     cred_count = models.IntegerField()
     detected_arch = UnlimitedCharField()
     os_family = UnlimitedCharField()
+
+    class Meta:
+        db_table = 'hosts'
 
 
 class Session(models.Model):
@@ -100,6 +138,9 @@ class Service(models.Model):
     name = UnlimitedCharField(verbose_name='应用层协议名')
     updated_at = models.DateTimeField()
     info = models.TextField()
+
+    class Meta:
+        db_table = 'services'
 
 
 class MetasploitCredentialLogin(models.Model):
