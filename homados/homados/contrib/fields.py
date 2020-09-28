@@ -3,9 +3,12 @@ import json
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
 from rest_framework.fields import Field
 from rubymarshal import reader
 from rubymarshal.classes import Symbol, RubyObject
+
+logger = settings.LOGGER
 
 
 class RubyHashField(models.TextField):
@@ -13,9 +16,18 @@ class RubyHashField(models.TextField):
     def to_python(self, value):
         if not isinstance(value, str):
             return value
-        byte_text = base64.b64decode(value.encode())
-        data = reader.loads(byte_text)
-        return self.convert_to_dict(data)
+        try:
+            byte_text = base64.b64decode(value.encode())
+            print(byte_text)
+            data = reader.loads(byte_text)
+            if isinstance(data, dict):
+                return self.convert_to_dict(data)
+            elif isinstance(data, bytes):
+                return data.decode()
+            return data
+        except Exception as e:
+            logger.exception(f'RubyHashField出现解析问题 {str(e)}')
+            return ''
 
     def convert_to_dict(self, value: dict):
         result = {}
