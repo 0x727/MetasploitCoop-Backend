@@ -1,7 +1,9 @@
 from django.db.models import fields
-from rest_framework import serializers
-from .models import ModuleResult, Session, SessionEvent, ModuleResult, MetasploitCredentialCore, Event
 from homados.contrib.serializerfields import BinaryTextField
+from rest_framework import serializers
+
+from .models import (Event, Loot, MetasploitCredentialCore, ModuleResult,
+                     Session, SessionEvent)
 
 
 class SessionSerializer(serializers.ModelSerializer):
@@ -65,4 +67,12 @@ class EventSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Event
+        fields = '__all__'
+
+
+class LootSerializer(serializers.ModelSerializer):
+    data = serializers.JSONField()
+
+    class Meta:
+        model = Loot
         fields = '__all__'

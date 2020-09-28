@@ -149,7 +149,7 @@ class MetasploitCredentialLogin(models.Model):
     core = models.ForeignKey(to='dbmsf.MetasploitCredentialCore', db_constraint=False, on_delete=models.DO_NOTHING, 
                                 db_column='core_id', related_name='cred_logins', verbose_name='核心表关联')
     service = models.ForeignKey(to='dbmsf.Service', db_constraint=False, on_delete=models.DO_NOTHING, 
-                                db_column='service_id', related_name='cred_logins', verbose_name='核心表关联')
+                                db_column='service_id', related_name='cred_logins', verbose_name='服务')
     access_level = UnlimitedCharField()
     status = UnlimitedCharField()
     last_attempted_at = models.DateTimeField()
@@ -229,3 +229,26 @@ class MetasploitCredentialCore(models.Model):
     """cred核心表"""
     class Meta:
         db_table = 'metasploit_credential_cores'
+
+
+class Loot(models.Model):
+    """战利品表"""
+    id = models.AutoField(primary_key=True)
+    workspace = models.ForeignKey(to='dbmsf.Workspace', db_constraint=False, on_delete=models.DO_NOTHING, 
+                            db_column='workspace_id', related_name='loots', verbose_name='工作区id')
+    host = models.ForeignKey(to='dbmsf.Host', db_constraint=False, on_delete=models.DO_NOTHING, 
+                            db_column='host_id', related_name='loots', verbose_name='主机id')
+    service = models.ForeignKey(to='dbmsf.Service', db_constraint=False, on_delete=models.DO_NOTHING, 
+                                db_column='service_id', related_name='loots', verbose_name='服务')
+    ltype = models.CharField(max_length=512, verbose_name='类型')
+    path = models.CharField(max_length=1024, verbose_name='所在目录')
+    data = RubyHashField(verbose_name='数据')
+    created_at = models.DateTimeField(verbose_name='创建时间')
+    updated_at = models.DateTimeField(verbose_name='更新时间')
+    content_type = UnlimitedCharField(verbose_name='内容类型')
+    name = models.TextField(verbose_name='名称')
+    info = models.TextField(verbose_name='基础信息')
+    module_run_id = models.IntegerField(verbose_name='模块运行id')
+
+    class Meta:
+        db_table = 'loots'
