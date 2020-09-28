@@ -1092,6 +1092,9 @@ class MeterpreterSession(MsfSession):
         result = self.rpc.call(MsfRpcMethod.SessionMeterpreterScreenshot, [self.sid, quality])
         return result
 
+    def upload_file(self, src, dest):
+        result = self.rpc.call(MsfRpcMethod.SessionMeterpreterUploadFile, [self.sid, src, dest])
+        return result
 
 class SessionRing:
 
