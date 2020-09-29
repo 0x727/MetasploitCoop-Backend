@@ -36,7 +36,11 @@ DATABASES = {
         'PASSWORD': _pg_pass,
         'HOST': _pg_host,
         'PORT': _pg_port,
-    }
+    },
+    'kbase': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    },
 }
 
 

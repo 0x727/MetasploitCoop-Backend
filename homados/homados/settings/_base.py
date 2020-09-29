@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'msfjsonrpc.apps.MsfjsonrpcConfig',
     'dbmsf',
     'duplex',
+    'kb',
 ]
 
 MIDDLEWARE = [
@@ -87,7 +88,11 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    },
+    'kbase': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    },
 }
 
 
@@ -205,7 +210,7 @@ LOGGER = logging.getLogger("homados")
 SESSION_CUSTOM_HEADER = "X-Token"
 
 
-DATABASE_ROUTERS = ['homados.contrib.dbrouters.MsfRouter']
+DATABASE_ROUTERS = ['homados.contrib.dbrouters.MsfRouter', 'homados.contrib.dbrouters.KbRouter']
 
 
 # Channels

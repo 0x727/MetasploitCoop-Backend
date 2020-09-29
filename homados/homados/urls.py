@@ -25,4 +25,5 @@ urlpatterns = [
     path(apiv1, include('userauth.urls')),
     path(apiv1, include('msfjsonrpc.urls')),
     path(apiv1 + 'dbmsf/', include('dbmsf.urls')),
+    path(apiv1 + 'kb/', include('kb.urls')),
 ]
