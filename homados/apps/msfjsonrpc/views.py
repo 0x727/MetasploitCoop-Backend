@@ -248,10 +248,11 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
     def cat_file(self, request, *args, **kwargs):
         try:
             filepath = request.query_params['filepath'].strip()
+            assert filepath and isinstance(filepath, str)
             session = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
-            data = session.execute_cmd(f'cat "{filepath}"')
+            data = session.cat_file(filepath)
             return Response(data=data)
-        except KeyError as e:
+        except (KeyError, AssertionError) as e:
             raise MissParamError(query_params=['filepath'])
         except MsfRpcError as e:
             raise MSFJSONRPCError(str(e))
@@ -270,13 +271,12 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
                 else:
                     files_for_del.append(pathinfo['filepath'])
             session = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
-            if dirs_for_del:
-                del_path_str = ' '.join([f'"{filepath}"' for filepath in dirs_for_del])
-                session.execute_cmd(f'rmdir {del_path_str}')
-            if files_for_del:
-                del_path_str = ' '.join([f'"{filepath}"' for filepath in files_for_del])
-                session.execute_cmd(f'rm {del_path_str}')
-            return Response(data='文件删除成功')
+            paths = {
+                'dirs': dirs_for_del,
+                'files': files_for_del,
+            }
+            result = session.rm_paths(paths)
+            return Response(data=result)
         except MsfRpcError as e:
             raise MSFJSONRPCError(str(e))
         except (KeyError, AssertionError) as e:

@@ -133,6 +133,8 @@ class MsfRpcMethod:
     SessionMeterpreterWrite = 'session.meterpreter_write'
     SessionMeterpreterExecute = 'session.meterpreter_execute'
     SessionMeterpreterCmdExec = 'session.meterpreter_cmdexec'
+    SessionMeterpreterCatFile = 'session.meterpreter_cat_file'
+    SessionMeterpreterDelFile = 'session.meterpreter_rm'
     SessionMeterpreterSessionDetach = 'session.meterpreter_session_detach'
     SessionMeterpreterSessionKill = 'session.meterpreter_session_kill'
     SessionMeterpreterTabs = 'session.meterpreter_tabs'
@@ -883,6 +885,28 @@ class MeterpreterSession(MsfSession):
         if not cmd.endswith('\n'):
             cmd += '\n'
         return self.rpc.call(MsfRpcMethod.SessionMeterpreterExecute, [self.sid, cmd])['data']
+    
+    def cat_file(self, filepath):
+        """
+        get content of special file
+
+        Args:
+            filepath: the path of file
+        """
+        filepath = filepath.strip()
+        return self.rpc.call(MsfRpcMethod.SessionMeterpreterCatFile, [self.sid, filepath])['data']
+    
+    def rm_paths(self, paths: dict):
+        """
+        Delete multiple files or folders
+
+        Args:
+            paths: a dict contains the fileinfo which you want to delete
+                example: {"dirs": ["C:\\Users\\Akkuman\\Desktop"], "files": ["C:\\Users\\Akkuman\\Desktop\\1.txt"]}
+        """
+        paths['dirs'] = paths.get('dirs', [])
+        paths['files'] = paths.get('files', [])
+        return self.rpc.call(MsfRpcMethod.SessionMeterpreterDelFile, [self.sid, paths])
     
     def cmd_exec(self, cmd, args, timeout=15):
         """使用目标机系统shell执行命令
