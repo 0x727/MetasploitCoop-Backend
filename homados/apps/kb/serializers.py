@@ -2,7 +2,7 @@ from django.db.models import fields
 from rest_framework import serializers
 from homados.contrib.fields import MyJSONField
 
-from kb.models import MsfModuleManual, TranslationBase
+from kb.models import MsfModuleManual, TranslationBase, FocusKeyword
 
 
 class MsfModuleManualSerializer(serializers.ModelSerializer):
@@ -19,3 +19,9 @@ class TranslationBaseSerializer(serializers.ModelSerializer):
         model = TranslationBase
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at']
+
+
+class FocusKeywordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FocusKeyword
+        exclude = ['created_at', 'updated_at']

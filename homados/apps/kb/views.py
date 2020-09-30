@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django_filters import rest_framework as rich_filters
 from homados.contrib.exceptions import MissParamError
 from homados.contrib.mymixins import PackResponseMixin
@@ -6,9 +7,10 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from kb.filters import MsfModuleManualFilter
-from kb.models import MsfModuleManual, TranslationBase
-from kb.serializers import MsfModuleManualSerializer, TranslationBaseSerializer
+from kb.filters import FocusKeywordFilter, MsfModuleManualFilter
+from kb.models import FocusKeyword, MsfModuleManual, TranslationBase
+from kb.serializers import (FocusKeywordSerializer, MsfModuleManualSerializer,
+                            TranslationBaseSerializer)
 
 # Create your views here.
 
@@ -38,3 +40,18 @@ class TranslationBaseViewSet(PackResponseMixin, viewsets.ModelViewSet):
             return Response(data=translation_base.zh_target)
         except KeyError as e:
             raise MissParamError(query_params=['en_source'])
+
+
+class FocusKeywordViewSet(PackResponseMixin, viewsets.ModelViewSet):
+    queryset = FocusKeyword.objects.all()
+    serializer_class = FocusKeywordSerializer
+    pagination_class = None
+    permission_classes = [IsAuthenticated]
+    filter_backends = [rich_filters.DjangoFilterBackend, filters.OrderingFilter]
+    filterset_class = FocusKeywordFilter
+
+    @action(methods=['GET'], detail=False, url_path='categories')
+    def categories(self, request, *args, **kwargs):
+        data = list(self.get_queryset().values('category').annotate(count=Count('id')))
+        return Response(data=data)
+
