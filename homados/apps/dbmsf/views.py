@@ -1,5 +1,5 @@
 from homados.contrib.mymixins import PackResponseMixin
-from rest_framework import viewsets
+from rest_framework import filters, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -27,6 +27,7 @@ class ModuleResultViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = ModuleResult.objects.all()
     serializer_class = ModuleResultSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.OrderingFilter]
     lookup_field = 'track_uuid'
 
     def retrieve(self, request, *args, **kwargs):
@@ -39,15 +40,18 @@ class MetasploitCredentialCoreViewSet(PackResponseMixin, viewsets.ReadOnlyModelV
     queryset = MetasploitCredentialCore.objects.all()
     serializer_class = MetasploitCredentialCoreSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.OrderingFilter]
 
 
 class EventViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.OrderingFilter]
 
 
 class LootViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Loot.objects.all()
     serializer_class = LootSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.OrderingFilter]

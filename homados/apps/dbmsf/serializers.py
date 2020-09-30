@@ -75,4 +75,5 @@ class LootSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Loot
-        fields = '__all__'
+        exclude = ('path', 'workspace')
+        depth = 1
