@@ -1,6 +1,4 @@
-from logging import info
 from django.db import models
-from requests.sessions import session
 from homados.contrib.fields import RubyHashField, UnlimitedCharField
 
 
