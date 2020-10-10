@@ -67,11 +67,15 @@ class MsfConsoleCustomer(BaseCustomer):
         """处理回车键"""
         # 如果上一次是回车（连续回车）返回prompt
         if not cache_input:
-            self.send_input_feedback('\r\n' + self.console.prompt)
+            self.send_input_feedback(f'\r\n{self.console.prompt}')
             return
         self.cache.msfconsole_history_add(cache_input)
-        if cache_input.lower() == 'exit -f':
+        if cache_input.strip().lower() == 'exit -f':
             cache_input = 'exit'
+        elif cache_input.strip().lower().startswith('sessions -i'):
+            self.cache.msfconsole_input_cache_clear()
+            self.send_input_feedback(f'\r\n交互模式已禁用，执行命令请右击会话\r\n{self.console.prompt}')
+            return
         # 发送命令
         self.console.send(cache_input + '\r\n')
         # 清空命令输入
