@@ -18,7 +18,6 @@ class RubyHashField(models.TextField):
             return value
         try:
             byte_text = base64.b64decode(value.encode())
-            print(byte_text)
             data = reader.loads(byte_text)
             if isinstance(data, dict):
                 return self.convert_to_dict(data)
