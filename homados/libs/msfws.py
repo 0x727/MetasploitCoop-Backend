@@ -14,7 +14,6 @@ logger = settings.LOGGER
 class BaseWS:
     def __init__(self, receiver_name: str):
         self.receiver_name = receiver_name
-        self.channel_layer = channels.layers.get_channel_layer()
         # lambda 函数主要是为了把 self 传入 callback function
         self.ws = websocket.WebSocketApp(
             self.get_ws_addr(),
@@ -78,6 +77,7 @@ class Notify(BaseWS, metaclass=Singleton):
         self.send_ws_msg(message)
 
     def send_ws_msg(self, message):
+        self.channel_layer = channels.layers.get_channel_layer()
         async_to_sync(self.channel_layer.group_send)(
             self.receiver_name,
             {
@@ -107,6 +107,7 @@ class Console(BaseWS):
         return f'ws://{self.jsonrpc_host}:{self.jsonrpc_port}/api/v1/websocket/console'
 
     def on_message(self, ws, message):
+        self.channel_layer = channels.layers.get_channel_layer()
         data = json.loads(message)
         self.cid = data['cid']
         self.prompt = data['prompt']
