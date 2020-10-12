@@ -1,5 +1,6 @@
 from rest_framework import serializers
 import chardet
+from libs.utils import memview_to_str
 
 
 class BinaryTextField(serializers.Field):
@@ -8,6 +9,4 @@ class BinaryTextField(serializers.Field):
         return data.encode()
 
     def to_representation(self, obj):
-        data_bytes = obj.tobytes()
-        result = chardet.detect(data_bytes)
-        return data_bytes.decode(result['encoding'])
+        return memview_to_str(obj)

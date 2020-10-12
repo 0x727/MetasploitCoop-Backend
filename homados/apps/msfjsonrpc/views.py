@@ -1,38 +1,35 @@
 import base64
 import functools
 import io
-import magic
-from django.http import request
 from pathlib import Path
 
 import html2text
-from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Count
-from django.db.models import Q
-from django.http import FileResponse
-from rest_framework import exceptions, filters, status, viewsets
-from django_filters import rest_framework as rich_filters
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.exceptions import APIException
+import magic
+from dbmsf.models import ModuleResult
 from dbmsf.serializers import Session, SessionEvent, SessionEventSerializer
-from libs.utils import report_msfjob_event
-
+from django.conf import settings
+from django.contrib.postgres.aggregates.general import StringAgg
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Count, Min, Q
+from django.http import FileResponse, request
+from django_filters import rest_framework as rich_filters
 from homados.contrib.exceptions import (MissParamError, MSFJSONRPCError,
                                         UnknownError)
 from homados.contrib.mymixins import PackResponseMixin
 from homados.contrib.viewsets import (ListDestroyViewSet,
                                       NoUpdateRetrieveViewSet, NoUpdateViewSet)
-from libs.pymetasploit.jsonrpc import MsfJsonRpc, MsfRpcError
-from libs.utils import get_user_ident
 from libs.disable_command_handler import disable_command_handler
+from libs.pymetasploit.jsonrpc import MsfJsonRpc, MsfRpcError
+from libs.utils import get_user_ident, memview_to_str, report_msfjob_event
+from rest_framework import exceptions, filters, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import APIException
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
+from .filters import ModuleFilter
 from .models import Modules
 from .serializers import ModuleSerializer
-from .filters import ModuleFilter
-
 
 logger = settings.LOGGER
 
@@ -200,7 +197,7 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             else:
                 shell = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
                 result = shell.write(command)
-                return Response(data=f'hoamdos running...> {command}')
+                return Response(data=f'> {command}')
         except (KeyError, ) as e:
             raise MissParamError(body_params=['command'])
         except MsfRpcError as e:
@@ -325,6 +322,27 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             session_events = db_session.session_events
             serializer = SessionEventSerializer(session_events, many=True)
             return Response(data=serializer.data)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
+        except Exception as e:
+            raise UnknownError
+    
+    @action(methods=['GET'], detail=True, url_path='moduleResults')
+    def module_results(self, request, *args, **kwargs):
+        """session 的模块执行结果"""
+        try:
+            sid = kwargs[self.lookup_field]
+            db_session = Session.objects.filter(local_id=sid).order_by('-id').first()
+            if not db_session:
+                raise exceptions.NotFound
+            data = list(ModuleResult.objects.filter(session=db_session).values('track_uuid').annotate(
+                output=StringAgg('output', delimiter=''),
+                created_at=Min('created_at'),
+                fullname=Min('fullname')
+            ))
+            for i in data:
+                i['output'] = memview_to_str(i['output'])
+            return Response(data=data)
         except MsfRpcError as e:
             raise MSFJSONRPCError(str(e))
         except Exception as e:
@@ -503,12 +521,8 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
             raise MissParamError(body_params=['PAYLOAD'])
 
     def list(self, request, *args, **kwargs):
-        data = []
-        jobs = msfjsonrpc.jobs.list
-        for jobid in jobs.keys():
-            job_info = msfjsonrpc.jobs.info(jobid)
-            data.append(job_info)
-        return Response(data=data)
+        jobs = msfjsonrpc.jobs.list_info
+        return Response(data=jobs)
 
     def destroy(self, request, *args, **kwargs):
         job_id = kwargs[self.lookup_field]

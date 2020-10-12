@@ -41,7 +41,7 @@ def handle_command_shell(command: str, instance=None, *args, **kwargs):
     cmd = cmd_args.pop(0)
     args = cmd_args
     msfjsonrpc.sessions.session(int(kwargs['sid'])).cmd_exec(cmd, args, timeout=120)
-    return CommandTips(True, f'hoamdos running...> {command}')
+    return CommandTips(True, f'> {command}')
 
 
 def handle_general_disable(msg: str):

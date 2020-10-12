@@ -1,4 +1,5 @@
 import threading
+import chardet
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 from userauth.serializers import LogSerializer
@@ -54,3 +55,8 @@ def report_auth_event(msg, callback=None):
 
 def report_msfjob_event(msg, callback=None):
     report_event(msg, ltype='msfjob', callback=callback)
+
+def memview_to_str(data):
+    data_bytes = data.tobytes()
+    result = chardet.detect(data_bytes)
+    return data_bytes.decode(result['encoding'])

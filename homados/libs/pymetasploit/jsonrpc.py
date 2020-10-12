@@ -97,6 +97,7 @@ class MsfRpcMethod:
     DbStatus = 'db.status'
     DbDisconnect = 'db.disconnect'
     JobList = 'job.list'
+    JobListInfo = 'job.list_info'
     JobStop = 'job.stop'
     JobInfo = 'job.info'
     ModuleAllinfo = 'module.allinfo'
@@ -1259,6 +1260,13 @@ class JobManager(MsfManager):
         A list of currently running jobs.
         """
         return self.rpc.call(MsfRpcMethod.JobList)
+    
+    @property
+    def list_info(self):
+        """
+        A list of currently running jobs with job_info.
+        """
+        return self.rpc.call(MsfRpcMethod.JobListInfo)
 
     def stop(self, jobid):
         """
