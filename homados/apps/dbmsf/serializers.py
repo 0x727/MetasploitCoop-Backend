@@ -3,7 +3,7 @@ from homados.contrib.serializerfields import BinaryTextField
 from rest_framework import serializers
 
 from .models import (Event, Loot, MetasploitCredentialCore, ModuleResult,
-                     Session, SessionEvent)
+                     Session, SessionEvent, Host)
 
 
 class SessionSerializer(serializers.ModelSerializer):
@@ -11,6 +11,12 @@ class SessionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Session
+        fields = '__all__'
+
+
+class HostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Host
         fields = '__all__'
 
 

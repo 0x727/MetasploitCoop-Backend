@@ -4,11 +4,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import (Event, Loot, MetasploitCredentialCore, ModuleResult,
-                     Session, SessionEvent)
+                     Session, SessionEvent, Host)
 from .serializers import (EventSerializer, LootSerializer,
                           MetasploitCredentialCoreSerializer,
                           ModuleResultSerializer, SessionEventSerializer,
-                          SessionSerializer)
+                          SessionSerializer, HostSerializer)
 
 
 class SessionViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
@@ -53,5 +53,12 @@ class EventViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
 class LootViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Loot.objects.all()
     serializer_class = LootSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.OrderingFilter]
+
+
+class HostViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
+    queryset = Host.objects.all()
+    serializer_class = HostSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
