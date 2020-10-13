@@ -23,6 +23,8 @@ class RubyHashField(models.TextField):
                 return self.convert_to_dict(data)
             elif isinstance(data, bytes):
                 return data.decode()
+            elif isinstance(data, RubyObject):
+                return str(data)
             return data
         except Exception as e:
             logger.exception(f'RubyHashField出现解析问题 {str(e)}')
