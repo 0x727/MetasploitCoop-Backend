@@ -330,6 +330,8 @@ class CoreManager(MsfManager):
             filename: the filename you want to download from loot directory
         """
         data = self.rpc.call(MsfRpcMethod.CoreLootDownload, [filename])['data']
+        if not data:
+            return None
         return base64.b64decode(data.encode())
     
     def loot_upload(self, path, data):

@@ -15,6 +15,7 @@ class DistinctCacheProxy:
 
     def method_missing(self, name: str, *args, **kwargs):
         # 如果以下划线开头不代理
+        args = list(args)
         if name.startswith('_'):
             return getattr(self, name)
         # 带有_many后缀的特殊处理，详见 django.core.cache.backends.db.DatabaseCache 的成员方法
@@ -125,3 +126,8 @@ class MsfConsoleCache(DistinctCacheProxy):
         cursor = cursor % len(history)
         return history[cursor]
 
+
+class LootDownloadLinkCache(DistinctCacheProxy):
+    def __init__(self):
+        ident_name = self.__class__.__name__
+        super().__init__(ident_name)

@@ -1,6 +1,7 @@
 import base64
 import functools
 import io
+import uuid
 from pathlib import Path
 
 import html2text
@@ -13,6 +14,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Count, Min, Q
 from django.http import FileResponse, request
 from django_filters import rest_framework as rich_filters
+from homados.contrib.cache import LootDownloadLinkCache
 from homados.contrib.exceptions import (MissParamError, MSFJSONRPCError,
                                         UnknownError)
 from homados.contrib.mymixins import PackResponseMixin
@@ -367,6 +369,17 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
 class LootViewSet(PackResponseMixin, NoUpdateViewSet):
     """msf loot 文件中转区视图集"""
     permission_classes = [IsAuthenticated]
+    loot_download_link_cache = LootDownloadLinkCache()
+
+    def get_permissions(self):
+        """
+        根据不同的action获取不同的权限校验中间件
+        """
+        if self.action == 'retrieve':
+            permission_classes = []
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def list(self, request, *args, **kwargs):
         try:
@@ -440,6 +453,38 @@ class LootViewSet(PackResponseMixin, NoUpdateViewSet):
             raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
+    
+    @action(methods=['POST'], detail=False, url_path='createDownloadLink')
+    def create_download_link(self, request, *args, **kwargs):
+        """创建文件临时下载直链"""
+        try:
+            path = request.data['path'].strip()
+            expire = int(request.data['expire'])
+            assert path and expire
+            link_uuid = str(uuid.uuid4())
+            self.loot_download_link_cache.set(link_uuid, path, expire)
+            return Response(data={'link_uuid': link_uuid})
+        except (KeyError, AssertionError) as e:
+            raise MissParamError(query_params=['path', 'expire'])
+        except Exception as e:
+            raise UnknownError
+
+    def retrieve(self, request, *args, **kwargs):
+        """根据文件下载直链下载文件"""
+        try:
+            link_uuid = kwargs[self.lookup_field]
+            path = self.loot_download_link_cache.get(link_uuid)
+            if not path:
+                raise exceptions.NotFound
+            filename = Path(path).name
+            data = msfjsonrpc.core.loot_download(path)
+            if not data:
+                raise exceptions.NotFound
+            data = io.BytesIO(data)
+            data.seek(0)
+            return FileResponse(data, as_attachment=True, filename=filename)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
 
 
 class InfoViewSet(PackResponseMixin, viewsets.GenericViewSet):
