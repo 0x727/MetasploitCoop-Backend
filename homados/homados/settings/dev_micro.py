@@ -60,3 +60,10 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer"
     }
 }
+
+
+# 腾讯翻译君 api token
+TENCENT_TRANSLATE_TOKEN = {
+    'SecretId': os.getenv('TENCENT_TRANSLATE_TOKEN_ID') or '',
+    'SecretKey': os.getenv('TENCENT_TRANSLATE_TOKEN_KEY') or ''
+}
