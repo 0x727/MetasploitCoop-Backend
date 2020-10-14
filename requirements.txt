@@ -8,3 +8,6 @@ html2text==2020.1.16
 channels==2.4.0
 django-filter==2.3.0
 python-magic==0.4.18
+websocket-client==0.57.0
+tencentcloud-sdk-python==3.0.270
+ratelimit==2.2.1

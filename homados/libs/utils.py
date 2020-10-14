@@ -1,8 +1,15 @@
+import json
 import threading
 import chardet
 from django.conf import settings
 from rest_framework.exceptions import ValidationError
 from userauth.serializers import LogSerializer
+from tencentcloud.common import credential
+from tencentcloud.common.profile.client_profile import ClientProfile
+from tencentcloud.common.profile.http_profile import HttpProfile
+from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
+from tencentcloud.tmt.v20180321 import tmt_client, models
+from ratelimit import limits, sleep_and_retry
 
 logger = settings.LOGGER
 
@@ -60,3 +67,35 @@ def memview_to_str(data):
     data_bytes = data.tobytes()
     result = chardet.detect(data_bytes)
     return data_bytes.decode(result['encoding'])
+
+
+@sleep_and_retry
+@limits(calls=5, period=60)
+def get_translation_from_qq(text):
+    """从腾讯翻译君翻译字符"""
+    # 腾讯接口每秒5次频率限制
+    try: 
+        cred = credential.Credential(settings.TENCENT_TRANSLATE_TOKEN['SecretId'], settings.TENCENT_TRANSLATE_TOKEN['SecretKey']) 
+        httpProfile = HttpProfile()
+        httpProfile.endpoint = "tmt.tencentcloudapi.com"
+
+        clientProfile = ClientProfile()
+        clientProfile.httpProfile = httpProfile
+        client = tmt_client.TmtClient(cred, "ap-shanghai", clientProfile) 
+
+        req = models.TextTranslateRequest()
+        params = {
+            "SourceText": text,
+            "Source": "en",
+            "Target": "zh",
+            "ProjectId": 0
+        }
+        req.from_json_string(json.dumps(params))
+
+        resp = client.TextTranslate(req)
+        result = resp.to_json_string()
+        data = json.loads(result)
+        return data.get('TargetText', '')
+
+    except TencentCloudSDKException as e: 
+        logger.exception(e)
