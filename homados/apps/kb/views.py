@@ -132,10 +132,13 @@ class TranslationBaseViewSet(PackResponseMixin, viewsets.ModelViewSet):
 class FocusKeywordViewSet(PackResponseMixin, viewsets.ModelViewSet):
     queryset = FocusKeyword.objects.all()
     serializer_class = FocusKeywordSerializer
-    pagination_class = None
     permission_classes = [IsAuthenticated]
     filter_backends = [rich_filters.DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = FocusKeywordFilter
+
+    @action(methods=['GET'], detail=False, url_path='all', pagination_class=None)
+    def list_all(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     @action(methods=['GET'], detail=False, url_path='categories')
     def categories(self, request, *args, **kwargs):
