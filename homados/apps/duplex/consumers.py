@@ -73,7 +73,7 @@ class MsfConsoleCustomer(BaseCustomer):
         self.cache.msfconsole_history_add(cache_input)
         if cache_input.strip().lower() == 'exit -f':
             cache_input = 'exit'
-        elif cache_input.strip().lower().startswith('sessions -i') or re.match(r'sessions \d+?', cache_input.strip().lower()):
+        elif re.match(r'sessions \d+?|sessions -i|pry|irb|edit|log', cache_input.strip().lower()):
             self.cache.msfconsole_input_cache_clear()
             self.send_input_feedback(f'\r\n交互模式已禁用，执行命令请右击会话\r\n{self.console.prompt}')
             return
