@@ -3,6 +3,7 @@ import functools
 import io
 import uuid
 from pathlib import Path
+import threading
 
 import html2text
 import magic
@@ -41,6 +42,8 @@ msfjsonrpc = MsfJsonRpc(
     token=settings.MSFCONFIG['JSONRPC']['TOKEN'],
 )
 
+refresh_mod_mutex = threading.Lock()
+
 
 class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Modules.objects.all()
@@ -50,9 +53,16 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     search_fields = ["ref_name"]
     filterset_class = ModuleFilter
 
-    def list(self, request, *args, **kwargs):
+    def initialize_request(self, request, *args, **kwargs):
+        request = super().initialize_request(request, *args, **kwargs)
+        # double check
         if Modules.objects.count() == 0:
-            self.refresh_module_cache(request)
+            with refresh_mod_mutex:
+                if Modules.objects.count() == 0:
+                    self.refresh_module_cache(request)
+        return request
+
+    def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
     @action(methods=["POST"], detail=False, url_path='refreshModuleCache')
@@ -458,7 +468,7 @@ class LootViewSet(PackResponseMixin, NoUpdateViewSet):
     def create_download_link(self, request, *args, **kwargs):
         """创建文件临时下载直链"""
         try:
-            path = request.data['path'].strip()
+            path = request.data['path'].strip().replace('../', '')
             expire = int(request.data['expire'])
             assert path and expire
             link_uuid = str(uuid.uuid4())
