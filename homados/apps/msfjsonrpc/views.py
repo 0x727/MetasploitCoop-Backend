@@ -1,9 +1,9 @@
 import base64
 import functools
 import io
+import threading
 import uuid
 from pathlib import Path
-import threading
 
 import html2text
 import magic
@@ -24,6 +24,7 @@ from homados.contrib.viewsets import (ListDestroyViewSet,
 from libs.disable_command_handler import disable_command_handler
 from libs.pymetasploit.jsonrpc import MsfJsonRpc, MsfRpcError
 from libs.utils import get_user_ident, memview_to_str, report_msfjob_event
+from qqwry import QQwry
 from rest_framework import exceptions, filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException
@@ -43,6 +44,9 @@ msfjsonrpc = MsfJsonRpc(
 )
 
 refresh_mod_mutex = threading.Lock()
+
+iploc = QQwry()
+iploc.load_file(str(settings.QQWRY_PATH))
 
 
 class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
@@ -183,6 +187,11 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
     def list(self, request, *args, **kwargs):
         data = []
         for k, v in msfjsonrpc.sessions.list.items():
+            tunnel_peer = v.get('tunnel_peer')
+            if tunnel_peer:
+                rip = tunnel_peer.split(':')[0].strip()
+                location = iploc.lookup(rip)
+                v['location'] = location if location else []
             data.append({ 'id': k, **v })
         return Response(data=data)
 
