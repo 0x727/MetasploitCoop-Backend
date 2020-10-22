@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 import logging
 import sys
 from pathlib import Path
+from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -34,6 +35,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'channels',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -50,6 +52,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     # 'django.contrib.sessions.middleware.SessionMiddleware',
     'homados.middleware.session.SessionCustomHeaderMiddleware',
@@ -224,3 +228,23 @@ CACHES = {
         'TIMEOUT': 1800,
     }
 }
+
+
+# 跨域相关配置
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'X-Token',
+]
+
+
+# 存放数据path
+DATA_DIR = BASE_DIR.joinpath('data')
+
+# qqwry.dat ip 纯真数据库path
+QQWRY_PATH = DATA_DIR.joinpath('qqwry.dat')
+
+# config.json 平台全局配置
+CONFIG_PATH = DATA_DIR.joinpath('config.json')
+if not CONFIG_PATH.exists():
+    with CONFIG_PATH.open('w') as f:
+        f.write('{}')
