@@ -1,4 +1,6 @@
+import json
 from django.contrib import auth
+from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, User
 from rest_framework import exceptions, filters, status, viewsets
 from rest_framework.decorators import action
@@ -6,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from homados.contrib.mymixins import PackResponseMixin
-from libs.utils import get_user_ident, report_auth_event
+from libs.utils import get_user_ident, report_auth_event, update_config, get_config
 
 from .models import Log
 from .serializers import LogSerializer, UserRegisterSerializer, UserSerializer
@@ -20,6 +22,8 @@ class AuthViewSet(PackResponseMixin, viewsets.GenericViewSet):
 
     @action(methods=["POST"], detail=False, url_path="register", permission_classes=[])
     def register(self, request, *args, **kwargs):
+        if get_config('close_register'):
+            raise exceptions.ValidationError(detail={'detail': '该平台已关闭注册'})
         serializer = UserRegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -51,6 +55,24 @@ class AuthViewSet(PackResponseMixin, viewsets.GenericViewSet):
         report_auth_event(f"{get_user_ident(request.user)} 进入平台")
         data.update(serializer.data)
         return Response(data)
+    
+    def _switch_register_status(self, request, close_register: bool) -> Response:
+        """切换注册状态"""
+        config = update_config(close_register=close_register)
+        msg = '关闭' if close_register else '打开'
+        report_auth_event(f"{get_user_ident(request.user)} {msg}注册")
+        return Response(config)
+    
+    @action(methods=["PATCH"], detail=False, url_path="closeRegister")
+    def close_register(self, request, *args, **kwargs):
+        return self._switch_register_status(request, True)
+    
+    @action(methods=["PATCH"], detail=False, url_path="openRegister")
+    def open_register(self, request, *args, **kwargs):
+        return self._switch_register_status(request, False)
+    
+
+        
 
 class LogViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Log.objects.all()
