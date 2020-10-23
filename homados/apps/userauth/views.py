@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.models import AnonymousUser, User
 from homados.contrib.cache import ConfigCache
+from homados.contrib.exceptions import MissParamError
 from homados.contrib.mymixins import PackResponseMixin
 from libs.utils import get_user_ident, report_auth_event
 from rest_framework import exceptions, filters, status, viewsets
@@ -60,20 +61,16 @@ class AuthViewSet(PackResponseMixin, viewsets.GenericViewSet):
         data.update(serializer.data)
         return Response(data)
     
-    def _switch_register_status(self, request, close_register: bool) -> Response:
-        """切换注册状态"""
-        runtime_config.set('close_register', close_register, None)
-        msg = '关闭' if close_register else '打开'
-        report_auth_event(f"{get_user_ident(request.user)} {msg}注册")
-        return Response({'detail': '设置成功'})
-    
-    @action(methods=["PATCH"], detail=False, url_path="closeRegister")
-    def close_register(self, request, *args, **kwargs):
-        return self._switch_register_status(request, True)
-    
-    @action(methods=["PATCH"], detail=False, url_path="openRegister")
-    def open_register(self, request, *args, **kwargs):
-        return self._switch_register_status(request, False)
+    @action(methods=["PATCH"], detail=False, url_path="switchRegister")
+    def switch_register(self, request, *args, **kwargs):
+        try:
+            is_close_register = bool(int(request.query_params['close']))
+            runtime_config.set('close_register', is_close_register, None)
+            msg = '关闭' if is_close_register else '打开'
+            report_auth_event(f"{get_user_ident(request.user)} {msg}注册")
+            return Response({'detail': '设置成功'})
+        except KeyError as e:
+            raise MissParamError(query_params=['close'])
 
 
 class LogViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
