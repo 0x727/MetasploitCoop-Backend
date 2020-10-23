@@ -242,9 +242,3 @@ DATA_DIR = BASE_DIR.joinpath('data')
 
 # qqwry.dat ip 纯真数据库path
 QQWRY_PATH = DATA_DIR.joinpath('qqwry.dat')
-
-# config.json 平台全局配置
-CONFIG_PATH = DATA_DIR.joinpath('config.json')
-if not CONFIG_PATH.exists():
-    with CONFIG_PATH.open('w') as f:
-        f.write('{}')

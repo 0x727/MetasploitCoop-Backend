@@ -131,3 +131,10 @@ class LootDownloadLinkCache(DistinctCacheProxy):
     def __init__(self):
         ident_name = self.__class__.__name__
         super().__init__(ident_name)
+
+
+class ConfigCache(DistinctCacheProxy):
+    """放置设置的缓存"""
+    def __init__(self):
+        ident_name = self.__class__.__name__
+        super().__init__(ident_name)

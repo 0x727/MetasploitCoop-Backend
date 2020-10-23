@@ -99,21 +99,3 @@ def get_translation_from_qq(text):
 
     except TencentCloudSDKException as e: 
         logger.exception(e)
-
-def update_config(**kwargs):
-    """更新平台全局配置"""
-    config = {}
-    with settings.CONFIG_PATH.open('r') as f:
-        config = json.load(f)
-    config.update(kwargs)
-    with settings.CONFIG_PATH.open('w') as f:
-        json.dump(config, f, sort_keys=True, indent=4)
-    return config
-
-
-def get_config(key):
-    """获取平台全局配置"""
-    config = {}
-    with settings.CONFIG_PATH.open('r') as f:
-        config = json.load(f)
-    return config.get(key)
