@@ -96,11 +96,17 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
         data = list(Modules.objects.values('type').annotate(count=Count('id')))
         return Response(data=data)
 
-    @action(detail=False, url_path='ref_names', filter_backends=(rich_filters.DjangoFilterBackend,))
+    @action(detail=False, url_path='ref_names')
     def get_ref_names(self, request, *args, **kwargs):
         """过滤模块标识"""
         try:
-            queryset = self.filter_queryset(self.get_queryset())
+            platform = request.query_params.get('platform')
+            mtype = request.query_params.get('type')
+            queryset = self.get_queryset()
+            if mtype:
+                queryset = queryset.filter(type=mtype)
+            if platform:
+                queryset = queryset.filter(Q(ref_name__startswith='multi') | Q(ref_name__startswith=platform))
             data = list(queryset.values('id', 'ref_name'))
             return Response(data=data)
         except Exception as e:
