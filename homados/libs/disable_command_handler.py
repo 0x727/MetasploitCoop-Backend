@@ -54,8 +54,8 @@ def handle_general_disable(msg: str):
 
 disable_command_handler = {
     re.compile(r'^shell$|^shell .*'): handle_command_shell,
-    re.compile(r'^run$|^run .*'): handle_general_disable('不支持run指令，请使用post模块代替'),
+    re.compile(r'^(bg|)run$|^(bg|)run .*'): handle_general_disable('不支持[bg]run指令，请使用post模块代替'),
     re.compile(r'^edit$|^edit .*'): handle_general_disable('不支持edit指令，请使用图形界面编辑'),
     re.compile(r'^screenshare$|^screenshare .*'): handle_general_disable('不支持screenshare指令'),
-    re.compile(r'^pry$|^pry .*'): handle_general_disable('不支持pry指令'),
+    re.compile(r'^(irb|pry)$|^(irb|pry) .*'): handle_general_disable('不支持交互式指令'),
 }
