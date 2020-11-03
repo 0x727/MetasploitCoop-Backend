@@ -66,7 +66,8 @@ def report_msfjob_event(msg, callback=None):
 def memview_to_str(data):
     data_bytes = data.tobytes()
     result = chardet.detect(data_bytes)
-    return data_bytes.decode(result['encoding'])
+    encoding = result['encoding'] if result.get('encoding') else 'utf-8'
+    return data_bytes.decode(encoding)
 
 
 @sleep_and_retry
