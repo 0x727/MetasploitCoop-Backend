@@ -12,8 +12,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from kb.filters import FocusKeywordFilter, MsfModuleManualFilter
-from kb.models import FocusKeyword, MsfModuleManual, TranslationBase
-from kb.serializers import (FocusKeywordSerializer, MsfModuleManualSerializer,
+from kb.models import ContextMenu, FocusKeyword, MsfModuleManual, TranslationBase
+from kb.serializers import (ContextMenuSerializer, FocusKeywordSerializer, MsfModuleManualSerializer,
                             TranslationBaseSerializer)
 
 msfjsonrpc = MsfJsonRpc(
@@ -144,4 +144,16 @@ class FocusKeywordViewSet(PackResponseMixin, viewsets.ModelViewSet):
     def categories(self, request, *args, **kwargs):
         data = list(self.get_queryset().values('category').annotate(count=Count('id')))
         return Response(data=data)
+    
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(data={'detail': f'{instance.word} 删除成功'})
+
+
+class ContextMenuViewSet(PackResponseMixin, viewsets.ModelViewSet):
+    """右键菜单"""
+    queryset = ContextMenu.objects.all()
+    serializer_class = ContextMenuSerializer
+    permission_classes = [IsAuthenticated]
 

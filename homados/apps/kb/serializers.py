@@ -2,7 +2,7 @@ from django.db.models import fields
 from rest_framework import serializers
 from homados.contrib.fields import MyJSONField
 
-from kb.models import MsfModuleManual, TranslationBase, FocusKeyword
+from kb.models import ContextMenu, MsfModuleManual, TranslationBase, FocusKeyword
 
 
 class MsfModuleManualSerializer(serializers.ModelSerializer):
@@ -25,3 +25,14 @@ class FocusKeywordSerializer(serializers.ModelSerializer):
     class Meta:
         model = FocusKeyword
         exclude = ['created_at', 'updated_at']
+
+
+class ContextMenuSerializer(serializers.ModelSerializer):
+    """右键菜单"""
+    addition = MyJSONField(ensure_ascii=False, allow_null=True, default=None)
+
+    class Meta:
+        model = ContextMenu
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
+        
