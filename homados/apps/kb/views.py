@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db.models import Count
 from django_filters import rest_framework as rich_filters
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from homados.contrib.exceptions import MissParamError, MSFJSONRPCError
 from homados.contrib.mymixins import PackResponseMixin
 from libs.pymetasploit.jsonrpc import MsfJsonRpc, MsfRpcError
@@ -156,4 +158,27 @@ class ContextMenuViewSet(PackResponseMixin, viewsets.ModelViewSet):
     queryset = ContextMenu.objects.all()
     serializer_class = ContextMenuSerializer
     permission_classes = [IsAuthenticated]
+
+    @action(methods=['GET'], detail=False, url_path='tree')
+    @method_decorator(cache_page(60))
+    def tree(self, request, *args, **kwargs):
+        """右键菜单生成树"""
+        menu_tree = self._list_all_withpid(0)
+        data = self._gen_tree(menu_tree)
+        return Response(data)
+    
+    def _gen_tree(self, menu_tree):
+        for idx, menu in enumerate(menu_tree):
+            children = self._list_all_withpid(menu['id'])
+            if not children:
+                continue
+            menu_tree[idx]['children'] = self._gen_tree(children)
+        return menu_tree
+        
+    
+    def _list_all_withpid(self, pid):
+        """获取所有与右键菜单有关的主要信息，根据pid"""
+        menus = self.get_queryset().filter(pid=pid).values('id', 'text', 'type', 'addition', 'is_autorun', 'pid')
+        return menus
+
 
