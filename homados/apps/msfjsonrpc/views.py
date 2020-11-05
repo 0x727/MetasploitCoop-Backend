@@ -36,6 +36,7 @@ from msfjsonrpc.permissions import CanUpdateModConfig
 from .filters import ModuleFilter
 from .models import ModAutoConfig, Modules
 from .serializers import ModAutoConfigMiniSerializer, ModAutoConfigSerializer, ModuleSerializer
+from . import background
 
 logger = settings.LOGGER
 
@@ -194,7 +195,11 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
 
     def list(self, request, *args, **kwargs):
         data = []
-        for k, v in msfjsonrpc.sessions.list.items():
+        sessions = msfjsonrpc.sessions.list
+        # update_thread 另开线程进行主机存活更新
+        update_thread = background.UpdateHostsInfoThread(sessions)
+        update_thread.start()
+        for k, v in sessions.items():
             tunnel_peer = v.get('tunnel_peer')
             if tunnel_peer:
                 rip = tunnel_peer.split(':')[0].strip()
@@ -631,6 +636,8 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
             data = io.BytesIO(data)
             data.seek(0)
             return FileResponse(data, as_attachment=True, filename=f"test.{payload['Format']}")
+    
+    
 
 
 class ModAutoConfigViewSet(PackResponseMixin, viewsets.ModelViewSet):
