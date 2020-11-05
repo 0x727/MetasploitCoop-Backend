@@ -1,5 +1,5 @@
 from django.db.models import fields
-from homados.contrib.serializerfields import BinaryTextField
+from homados.contrib.serializers import BinaryTextField
 from rest_framework import serializers
 
 from .models import (Event, Loot, MetasploitCredentialCore, ModuleResult,
