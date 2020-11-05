@@ -15,7 +15,7 @@ from rest_framework.response import Response
 
 from kb.filters import FocusKeywordFilter, MsfModuleManualFilter
 from kb.models import ContextMenu, FocusKeyword, MsfModuleManual, TranslationBase
-from kb.serializers import (ContextMenuSerializer, FocusKeywordSerializer, MsfModuleManualSerializer,
+from kb.serializers import (ContextMenuMiniSerializer, ContextMenuSerializer, FocusKeywordSerializer, MsfModuleManualSerializer,
                             TranslationBaseSerializer)
 
 msfjsonrpc = MsfJsonRpc(
@@ -177,7 +177,6 @@ class ContextMenuViewSet(PackResponseMixin, viewsets.ModelViewSet):
 
     def _list_all_withpid(self, pid):
         """获取所有与右键菜单有关的主要信息，根据pid"""
-        menus = self.get_queryset().filter(pid=pid).values('id', 'text', 'type', 'addition', 'is_autorun', 'pid')
-        return menus
-
-
+        menus = self.get_queryset().filter(pid=pid)
+        serializer = ContextMenuMiniSerializer(menus, many=True)
+        return serializer.data

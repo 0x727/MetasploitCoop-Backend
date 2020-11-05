@@ -36,3 +36,12 @@ class ContextMenuSerializer(MyModelSerializer):
         model = ContextMenu
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at']
+
+
+class ContextMenuMiniSerializer(MyModelSerializer):
+    """只包含关键信息的右键菜单"""
+    addition = MyJSONField(ensure_ascii=False, allow_null=True, default=None)
+
+    class Meta:
+        model = ContextMenu
+        fields = ('id', 'text', 'addition', 'pid')
