@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Modules
+from .models import ModAutoConfig, Modules
 
 
 class ModuleSerializer(serializers.ModelSerializer):
@@ -10,3 +10,22 @@ class ModuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Modules
         exclude = ['info_html', 'compatible_payloads']
+
+
+class ModAutoConfigSerializer(serializers.ModelSerializer):
+    def validate_config(self, value):
+        if not value:
+            raise serializers.ValidationError("配置 config 不能为空")
+        return value
+
+    class Meta:
+        model = ModAutoConfig
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class ModAutoConfigMiniSerializer(serializers.ModelSerializer):
+    """模块自动配置的精简信息"""
+    class Meta:
+        model = ModAutoConfig
+        fields = ('id', 'config', 'is_public')

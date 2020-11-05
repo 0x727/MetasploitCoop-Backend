@@ -31,9 +31,11 @@ from rest_framework.exceptions import APIException
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from msfjsonrpc.permissions import CanUpdateModConfig
+
 from .filters import ModuleFilter
-from .models import Modules
-from .serializers import ModuleSerializer
+from .models import ModAutoConfig, Modules
+from .serializers import ModAutoConfigMiniSerializer, ModAutoConfigSerializer, ModuleSerializer
 
 logger = settings.LOGGER
 
@@ -629,3 +631,21 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
             data = io.BytesIO(data)
             data.seek(0)
             return FileResponse(data, as_attachment=True, filename=f"test.{payload['Format']}")
+
+
+class ModAutoConfigViewSet(PackResponseMixin, viewsets.ModelViewSet):
+    """模块自动配置视图集"""
+    queryset = ModAutoConfig.objects.all()
+    serializer_class = ModAutoConfigSerializer
+    permission_classes = [IsAuthenticated & CanUpdateModConfig]
+    pagination_class = None
+
+    def create(self, request, *args, **kwargs):
+        """创建的时候该条目所属用户自动设置为本人"""
+        request.data['user'] = request.user.pk
+        return super().create(request, *args, **kwargs)
+    
+    def list(self, request, *args, **kwargs):
+        self.serializer_class = ModAutoConfigMiniSerializer
+        self.queryset = self.get_queryset().filter(Q(user=request.user) | Q(is_public=True))
+        return super().list(request, *args, **kwargs)

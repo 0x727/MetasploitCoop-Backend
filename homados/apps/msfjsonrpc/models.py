@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import JSONField
+from django.contrib.auth.models import User
 
 # Create your models here.
 
@@ -27,3 +28,12 @@ class Modules(models.Model):
     info_html = models.TextField(null=True, verbose_name='详细介绍')
     compatible_payloads = ArrayField(models.CharField(max_length=100, blank=True), null=True, verbose_name='exp兼容payload')
     options = JSONField(null=True, verbose_name='模块选项')
+
+
+class ModAutoConfig(models.Model):
+    """模块的自动默认配置"""
+    config = JSONField(verbose_name='配置项')
+    is_public = models.BooleanField(default=False, verbose_name='是否公开给其他人使用')
+    user = models.ForeignKey(to=User, on_delete=models.DO_NOTHING, db_constraint=False, verbose_name='所属用户')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
