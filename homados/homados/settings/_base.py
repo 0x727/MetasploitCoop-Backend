@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'dbmsf',
     'duplex',
     'kb',
+    'synergy',
 ]
 
 MIDDLEWARE = [
