@@ -1,5 +1,6 @@
 import base64
 import json
+import chardet
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
@@ -22,7 +23,8 @@ class RubyHashField(models.TextField):
             if isinstance(data, dict):
                 return self.convert_to_dict(data)
             elif isinstance(data, bytes):
-                return data.decode()
+                res = chardet.detect(data)
+                return data.decode(res['encoding'] or 'utf-8')
             elif isinstance(data, RubyObject):
                 return str(data)
             return data

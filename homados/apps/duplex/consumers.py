@@ -53,7 +53,7 @@ class MsfConsoleCustomer(BaseCustomer):
         if data:
             data_bytes = base64.b64decode(data)
             result = chardet.detect(data_bytes)
-            data = data_bytes.decode(result['encoding'])
+            data = data_bytes.decode(result['encoding'] or 'utf-8')
         data = data.replace('\n', '\r\n')
         prompt: str = message.get('prompt', '')
         data += prompt
