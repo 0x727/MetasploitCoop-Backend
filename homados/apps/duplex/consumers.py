@@ -11,6 +11,7 @@ from django.contrib.auth.models import AnonymousUser
 from homados.contrib.cache import MsfConsoleCache
 from libs.msfws import Console, Notify
 from libs.pymetasploit.jsonrpc import MsfJsonRpc, MsfRpcError
+from homados.contrib import mychannels
 
 logger = settings.LOGGER
 
@@ -23,13 +24,9 @@ class CustomerGroup:
     MsfConsole = 'MsfConsole'
 
 
-class BaseCustomer(WebsocketConsumer):
+class BaseCustomer(mychannels.AuthCustomer):
     def connect(self):
-        self.accept()
-        if isinstance(self.scope['user'], AnonymousUser):
-            return self.disconnect(403)
-        client_addr = ':'.join([str(i) for i in self.scope["client"]])
-        logger.info(f'[{self.__class__.__name__}] {client_addr} websocket 建立连接')
+        super().connect()
 
     def send_message(self, event):
         message = event['message']
