@@ -166,16 +166,15 @@ class ContextMenuViewSet(PackResponseMixin, viewsets.ModelViewSet):
         menu_tree = self._list_all_withpid(0)
         data = self._gen_tree(menu_tree)
         return Response(data)
-    
+
     def _gen_tree(self, menu_tree):
-        for idx, menu in enumerate(menu_tree):
+        for menu in menu_tree:
             children = self._list_all_withpid(menu['id'])
             if not children:
                 continue
-            menu_tree[idx]['children'] = self._gen_tree(children)
+            menu['children'] = self._gen_tree(children)
         return menu_tree
-        
-    
+
     def _list_all_withpid(self, pid):
         """获取所有与右键菜单有关的主要信息，根据pid"""
         menus = self.get_queryset().filter(pid=pid).values('id', 'text', 'type', 'addition', 'is_autorun', 'pid')
