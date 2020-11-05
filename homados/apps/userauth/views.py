@@ -58,13 +58,14 @@ class AuthViewSet(PackResponseMixin, viewsets.GenericViewSet):
         data['roles'] = ['admin'] if request.user.is_staff else ['user']
         serializer = self.get_serializer(request.user)
         report_auth_event(f"{get_user_ident(request.user)} 进入平台")
+        data['close_register'] = runtime_config.get('close_register', False)
         data.update(serializer.data)
         return Response(data)
     
     @action(methods=["PATCH"], detail=False, url_path="switchRegister")
     def switch_register(self, request, *args, **kwargs):
         try:
-            is_close_register = bool(int(request.query_params['close']))
+            is_close_register = bool(request.data['close'])
             runtime_config.set('close_register', is_close_register, None)
             msg = '关闭' if is_close_register else '打开'
             report_auth_event(f"{get_user_ident(request.user)} {msg}注册")
