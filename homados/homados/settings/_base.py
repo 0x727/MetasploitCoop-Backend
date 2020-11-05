@@ -218,7 +218,7 @@ DATABASE_ROUTERS = ['homados.contrib.dbrouters.MsfRouter', 'homados.contrib.dbro
 
 
 # Channels
-ASGI_APPLICATION = 'homados.routing.application'
+ASGI_APPLICATION = 'homados.asgi.application'
 
 
 CACHES = {
