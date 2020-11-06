@@ -40,11 +40,7 @@ from . import background
 
 logger = settings.LOGGER
 
-msfjsonrpc = MsfJsonRpc(
-    server=settings.MSFCONFIG['HOST'],
-    port=settings.MSFCONFIG['JSONRPC']['PORT'],
-    token=settings.MSFCONFIG['JSONRPC']['TOKEN'],
-)
+msfjsonrpc = background.msfjsonrpc
 
 refresh_mod_mutex = threading.Lock()
 
@@ -593,6 +589,9 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
                 module_payload[k] = v
             result = module_exploit.execute(payload=module_payload)
             report_msfjob_event(f'{get_user_ident(request.user)} 创建监听器 {payload_type}')
+            
+            # 将监听器增加到缓存
+            background.ListenerCacheAddThread(result.get('job_id')).start()
             return Response(data=result)
         except (KeyError, ) as e:
             raise MissParamError(body_params=['PAYLOAD'])
@@ -604,6 +603,9 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
     def destroy(self, request, *args, **kwargs):
         job_id = kwargs[self.lookup_field]
         result = msfjsonrpc.jobs.stop(job_id)
+
+        # 将监听器从缓存中删除
+        background.ListenerCacheDelThread(job_id).start()
         report_msfjob_event(f'{get_user_ident(request.user)} 删除监听器 job_id: {job_id}')
         return Response(data=result)
     
@@ -636,8 +638,6 @@ class JobViewSet(PackResponseMixin, NoUpdateRetrieveViewSet):
             data = io.BytesIO(data)
             data.seek(0)
             return FileResponse(data, as_attachment=True, filename=f"test.{payload['Format']}")
-    
-    
 
 
 class ModAutoConfigViewSet(PackResponseMixin, viewsets.ModelViewSet):

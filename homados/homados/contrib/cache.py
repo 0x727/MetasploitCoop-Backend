@@ -1,5 +1,10 @@
+from typing import Dict, List, Union
 from django.core.cache import caches
 from functools import partial
+from django.conf import settings
+
+
+logger = settings.LOGGER
 
 
 class DistinctCacheProxy:
@@ -138,3 +143,66 @@ class ConfigCache(DistinctCacheProxy):
     def __init__(self):
         ident_name = self.__class__.__name__
         super().__init__(ident_name)
+
+
+class MsfCache(DistinctCacheProxy):
+    """msf的一些缓存，方便重启后一键配置某些东西"""
+    _key_listener = 'listener'
+
+    def __init__(self):
+        ident_name = self.__class__.__name__
+        super().__init__(ident_name)
+
+    def add_listener(self, listener_config: Dict):
+        """增加监听器配置
+        
+        Args:
+            listener_config: 监听器配置
+        """
+        try:
+            assert 'datastore' in listener_config and \
+                'LHOST' in listener_config['datastore'] and \
+                'LPORT' in listener_config['datastore'], '监听器配置没有LHOST或LPORT，添加缓存失败'
+            lhost = listener_config['datastore']['LHOST']
+            lport = listener_config['datastore']['LPORT']
+            listeners = self.get_listeners()
+            listeners[f'{lhost}:{lport}'] = listener_config
+            self.set(self._key_listener, listeners, None)
+        except AssertionError as e:
+            logger.error(e)
+    
+    def bulk_update_listeners(self, listener_configs: Dict):
+        """批量更新监听器
+        
+        Args:
+            listener_configs: 监听器配置字典
+        """
+        listeners = self.get_listeners()
+        for k, listener_config in listener_configs.items():
+            if 'multi/handler' not in listener_config.get('name', ''):
+                continue
+            listeners[k] = listener_config
+        self.set(self._key_listener, listeners, None)
+
+    def del_listener_with_jid(self, jid: int):
+        """根据监听host和port删除监听器配置
+        
+        Args:
+            lhost: 监听主机
+            lport: 监听端口
+        """
+        try:
+            listeners = self.get_listeners()
+            to_del_keys = []
+            for k, v in listeners.items():
+                if v.get('jid') == jid:
+                    to_del_keys.append(k)
+            for k in to_del_keys:
+                del listeners[k]
+            self.set(self._key_listener, listeners, None)
+        except AssertionError as e:
+            logger.error(e)
+
+    def get_listeners(self) -> dict:
+        """获取所有监听器"""
+        return self.get(self._key_listener) or {}
