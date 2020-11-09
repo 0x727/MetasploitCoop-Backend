@@ -1,3 +1,4 @@
+from rest_framework.decorators import action
 from homados.contrib.mymixins import PackResponseMixin
 from rest_framework import filters, viewsets
 from rest_framework.permissions import IsAuthenticated
@@ -15,6 +16,13 @@ class SessionViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
     permission_classes = [IsAuthenticated]
+
+    @action(methods=['GET'], detail=True, url_path='events')
+    def session_events(self, request, *args, **kwargs):
+        """获取会话事件"""
+        session = self.get_object()
+        serializer = SessionEventSerializer(session.session_events, many=True)
+        return Response(serializer.data)
 
 
 class SessionEventViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
@@ -62,3 +70,10 @@ class HostViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = HostSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
+
+    @action(methods=['GET'], detail=True, url_path='sessions')
+    def sessions(self, request, *args, **kwargs):
+        """获取主机关联的会话"""
+        host = self.get_object()
+        serializer = SessionSerializer(host.sessions, many=True)
+        return Response(serializer.data)
