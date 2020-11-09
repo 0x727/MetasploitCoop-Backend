@@ -21,6 +21,8 @@ from homados.contrib.exceptions import (MissParamError, MSFJSONRPCError,
 from homados.contrib.mymixins import PackResponseMixin
 from homados.contrib.viewsets import (ListDestroyViewSet,
                                       NoUpdateRetrieveViewSet, NoUpdateViewSet)
+from kb.models import ResourceScript
+from kb.serializers import ResourceScriptMiniSerializer, ResourceScriptSerializer
 from libs.disable_command_handler import disable_command_handler
 from libs.pymetasploit.jsonrpc import MsfJsonRpc, MsfRpcError
 from libs.utils import get_user_ident, memview_to_str, report_msfjob_event
@@ -656,3 +658,46 @@ class ModAutoConfigViewSet(PackResponseMixin, viewsets.ModelViewSet):
         self.serializer_class = ModAutoConfigMiniSerializer
         self.queryset = self.get_queryset().filter(Q(user=request.user) | Q(is_public=True))
         return super().list(request, *args, **kwargs)
+
+
+class ResourceScriptViewSet(PackResponseMixin, viewsets.ModelViewSet):
+    """资源脚本视图集"""
+    queryset = ResourceScript.objects.all()
+    serializer_class = ResourceScriptSerializer
+    pagination_class = None
+    permission_classes = [IsAuthenticated]
+
+    def initialize_request(self, request, *args, **kwargs):
+        request = super().initialize_request(request, *args, **kwargs)
+        if self.get_queryset().count() == 0:
+            self.refresh_rc_cache(request, *args, **kwargs)
+        return request
+
+    def refresh_rc_cache(self, request, *args, **kwargs):
+        """刷新资源脚本缓存"""
+        rc_list = msfjsonrpc.core.rc_list()
+        rc_map = {i['rc_name']:i['rc_content'] for i in rc_list}
+        rc_names = rc_map.keys()
+        db_rc_names = self.get_queryset().filter(filename__in=rc_names).values_list('filename', flat=True)
+        diff_names = set()
+        if len(db_rc_names) <= len(rc_names):
+            diff_names = set(rc_names) - set(db_rc_names)
+        rc_scripts = []
+        for name in diff_names:
+            rc_scripts.append(self.get_queryset().model(
+                filename=name,
+                content=rc_map[name]
+            ))
+        self.get_queryset().bulk_create(rc_scripts)
+        return Response()
+
+    def list(self, request, *args, **kwargs):
+        self.serializer_class = ResourceScriptMiniSerializer
+        return super().list(request, *args, **kwargs)
+
+    # TODO 资源脚本执行
+    @action(methods=['POST'], detail=True, url_path='load')
+    def load(self, request, *args, **kwargs):
+        """执行资源脚本"""
+        pass
+

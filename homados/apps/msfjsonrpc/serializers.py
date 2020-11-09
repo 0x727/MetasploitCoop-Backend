@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ModAutoConfig, Modules
+from . import models
 
 
 class ModuleSerializer(serializers.ModelSerializer):
@@ -8,7 +8,7 @@ class ModuleSerializer(serializers.ModelSerializer):
     references = serializers.ListField()
     targets = serializers.ListField()
     class Meta:
-        model = Modules
+        model = models.Modules
         exclude = ['info_html', 'compatible_payloads']
 
 
@@ -19,7 +19,7 @@ class ModAutoConfigSerializer(serializers.ModelSerializer):
         return value
 
     class Meta:
-        model = ModAutoConfig
+        model = models.ModAutoConfig
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at']
 
@@ -27,5 +27,5 @@ class ModAutoConfigSerializer(serializers.ModelSerializer):
 class ModAutoConfigMiniSerializer(serializers.ModelSerializer):
     """模块自动配置的精简信息"""
     class Meta:
-        model = ModAutoConfig
+        model = models.ModAutoConfig
         fields = ('id', 'config', 'is_public')

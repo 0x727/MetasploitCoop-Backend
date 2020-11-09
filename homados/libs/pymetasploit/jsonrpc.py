@@ -58,6 +58,7 @@ class MsfRpcMethod:
     CoreLootUpload = 'core.loot_upload'
     CoreLootDownload = 'core.loot_download'
     CoreLootDestory = 'core.loot_destroy'
+    CoreRCList = 'core.rc_list'
     DbHosts = 'db.hosts'
     DbServices = 'db.services'
     DbVulns = 'db.vulns'
@@ -353,6 +354,15 @@ class CoreManager(MsfManager):
             filename: the filename you want to destroy from loot directory
         """
         return self.rpc.call(MsfRpcMethod.CoreLootDestory, [filename])
+    
+    def rc_list(self):
+        """
+        list all rc script with content
+        
+        Returns:
+            example: [{'rc_name': 'xxx', 'rc_content': 'xxx'}]
+        """
+        return self.rpc.call(MsfRpcMethod.CoreRCList)['data']
 
 
 class ModuleManager(MsfManager):

@@ -49,3 +49,16 @@ class ContextMenu(models.Model):
     addition = models.TextField(null=True, verbose_name='额外选项')
     is_autorun = models.BooleanField(default=False, verbose_name='是否直接自动执行')
     pid = models.ForeignKey(default=0, to='self', on_delete=models.CASCADE, db_constraint=False)
+
+
+class ResourceScript(models.Model):
+    """资源脚本"""
+    title = models.CharField(default='', max_length=100, verbose_name='脚本标题')
+    description = models.TextField(default='', verbose_name='脚本介绍')
+    filename = models.CharField(max_length=100, unique=True, verbose_name='脚本文件名')
+    content = models.TextField(verbose_name='脚本内容')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        db_table = 'resource_scripts'
