@@ -24,8 +24,6 @@ class ChatConsumer(mychannels.AuthCustomer):
             self.channel_name
         )
 
-        self.accept()
-
         self._send_message('join')
 
     def disconnect(self, close_code):
