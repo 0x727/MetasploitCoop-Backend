@@ -4,6 +4,7 @@ from asgiref.sync import async_to_sync
 from django.conf import settings
 from homados.contrib import mychannels
 from rest_framework.exceptions import ValidationError
+from synergy import serializers
 
 
 logger = settings.LOGGER
@@ -57,10 +58,10 @@ class ChatConsumer(mychannels.AuthCustomer):
     
     def _save_chat_record(self, message):
         """保存聊天记录到数据库"""
-        from . import serializers
         try:
             data = {
                 'user': self.scope['user'].pk,
+                'username': self.scope['user'].username,
                 'message': message,
                 'room': self.room_name,
             }
