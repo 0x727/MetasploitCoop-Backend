@@ -9,5 +9,5 @@ class ChatRecordSerializer(serializers.ModelSerializer):
     """聊天记录序列化器"""
     class Meta:
         model = models.ChatRecord
-        fields = ('username', 'user', 'message', 'room')
-        read_only_fields = ('username', )
+        fields = ('username', 'user', 'message', 'room', 'created_at')
+        read_only_fields = ('username', 'created_at')

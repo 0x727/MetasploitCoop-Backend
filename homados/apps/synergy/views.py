@@ -17,6 +17,7 @@ class ChatRecordViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = ChatRecord.objects.all()
     serializer_class = ChatRecordSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
     filter_backends = [rich_filters.DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = ChatRecordFilter
 
