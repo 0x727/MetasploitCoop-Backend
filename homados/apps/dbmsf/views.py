@@ -1,3 +1,5 @@
+from django.contrib.postgres.aggregates.general import StringAgg
+from django.db.models.aggregates import Min
 from rest_framework.decorators import action
 from homados.contrib.mymixins import PackResponseMixin
 from rest_framework import filters, viewsets
@@ -21,8 +23,26 @@ class SessionViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     def session_events(self, request, *args, **kwargs):
         """获取会话事件"""
         session = self.get_object()
-        serializer = SessionEventSerializer(session.session_events, many=True)
-        return Response(serializer.data)
+        data = []
+        if session.session_events:
+            serializer = SessionEventSerializer(session.session_events, many=True)
+            data = serializer.data
+        return Response(data)
+
+    @action(methods=['GET'], detail=True, url_path='modResults')
+    def module_results(self, request, *args, **kwargs):
+        """获取会话的模块执行结果"""
+        session = self.get_object()
+        data = []
+        if session.module_results:
+            data = list(ModuleResult.objects.filter(session=session).values('track_uuid').annotate(
+                output=StringAgg('output', delimiter=''),
+                created_at=Min('created_at'),
+                fullname=Min('fullname')
+            ))
+        for i in data:
+            i['output'] = memview_to_str(i['output'])
+        return Response(data)
 
 
 class SessionEventViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
