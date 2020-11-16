@@ -45,7 +45,7 @@ class MsfModuleManualViewSet(PackResponseMixin, viewsets.ModelViewSet):
         try:
             fullname = request.query_params['fullname']
             # 判断模块是否已有翻译
-            manual = Modules.objects.filter(fullname=fullname).first()
+            manual = self.get_queryset().filter(fullname=fullname).first()
             if manual:
                 serializer = self.get_serializer(manual)
                 return Response(data=serializer.data)
@@ -61,7 +61,7 @@ class MsfModuleManualViewSet(PackResponseMixin, viewsets.ModelViewSet):
             data['intro'] = self._get_translate(msfmodule.description)
             options_trans = {}
             for k, v in options.items():
-                options_trans[k] = self._get_translate(v)
+                options_trans[k] = self._get_translate(v['desc'])
             data['options'] = options_trans
             serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception=True)
