@@ -15,7 +15,7 @@ from homados.contrib import mychannels
 
 logger = settings.LOGGER
 
-msfjsonrpc = MsfJsonRpc(server=settings.MSFCONFIG['HOST'], port=settings.MSFCONFIG['JSONRPC']['PORT'], token=settings.MSFCONFIG['JSONRPC']['TOKEN'])
+msfjsonrpc = settings.MSFJSONRPC
 
 
 class CustomerGroup:

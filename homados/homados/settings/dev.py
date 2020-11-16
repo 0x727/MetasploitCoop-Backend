@@ -67,3 +67,6 @@ TENCENT_TRANSLATE_TOKEN = {
     'SecretId': os.getenv('TENCENT_TRANSLATE_TOKEN_ID') or '',
     'SecretKey': os.getenv('TENCENT_TRANSLATE_TOKEN_KEY') or ''
 }
+
+from libs.pymetasploit.jsonrpc import MsfJsonRpc
+MSFJSONRPC = MsfJsonRpc(server=MSFCONFIG['HOST'], port=MSFCONFIG['JSONRPC']['PORT'], token=MSFCONFIG['JSONRPC']['TOKEN'])
