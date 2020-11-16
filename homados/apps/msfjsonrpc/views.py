@@ -112,6 +112,13 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
             return Response(data=data)
         except Exception as e:
             raise UnknownError
+
+    @action(detail=False, url_path='usable/fullnames')
+    def usable_mod_fullnames(self, request, *args, **kwargs):
+        """非生成监听器和payload的可用模块"""
+        condition = (~Q(type='payload')) & (~Q(fullname='exploit/multi/handler'))
+        data = list(self.get_queryset().filter(condition).values('id', 'fullname'))
+        return Response(data=data)
     
     @action(detail=True, url_path='info_html')
     def get_info_html(self, request, *args, **kwargs):
@@ -185,6 +192,13 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
             raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
+
+    @action(methods=['GET'], detail=False, url_path='usableModList')
+    def usable_mod_list(self, request, *args, **kwargs):
+        """获取可用的模块"""
+        condition = (~Q(type='payload')) & (~Q(fullname='exploit/multi/handler'))
+        self.queryset = self.get_queryset().filter(condition)
+        return self.list(request, *args, **kwargs)
 
 
 class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
