@@ -34,22 +34,14 @@ class MsfModuleManualViewSet(PackResponseMixin, viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         # 如果模块翻译不存在则进行自动翻译
-        if request.query_params.get('fullname', ''):
-            count = self.filter_queryset(self.get_queryset()).count()
-            if count == 0:
-                self.auto_translate(request)
+        self.auto_translate(request)
         return super().list(request, *args, **kwargs)
 
     @action(methods=['GET'], detail=False, url_path='autoTranslate')
     def auto_translate(self, request, *args, **kwargs):
         try:
             fullname = request.query_params['fullname']
-            # 判断模块是否已有翻译
-            manual = self.get_queryset().filter(fullname=fullname).first()
-            if manual:
-                serializer = self.get_serializer(manual)
-                return Response(data=serializer.data)
-            # 没有翻译则进行机器翻译
+            # 进行机器翻译
             msfmodule = self._get_msfmodule(fullname)
             if msfmodule is None:
                 raise exceptions.NotFound
@@ -63,9 +55,18 @@ class MsfModuleManualViewSet(PackResponseMixin, viewsets.ModelViewSet):
             for k, v in options.items():
                 options_trans[k] = self._get_translate(v['desc'])
             data['options'] = options_trans
-            serializer = self.get_serializer(data=data)
+            _kwargs = {
+                'data': data
+            }
+            manual = self.get_queryset().filter(fullname=fullname).first()
+            if manual:
+                _kwargs['instance'] = manual
+            serializer = self.get_serializer(**_kwargs)
             serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
+            if manual:
+                self.perform_update(serializer)
+            else:
+                self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=200, headers=headers)
         except (KeyError) as e:
