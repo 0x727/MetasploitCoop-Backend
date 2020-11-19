@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  homados-postgres:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: "homados@123"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+
+  homados:
+    build: .
+    image: registry.cn-hangzhou.aliyuncs.com/akkuman/homados:1.1.0
+    environment:
+      HOMADOS_PG_USER: postgres
+      HOMADOS_PG_PASS: homados@123
+      HOMADOS_PG_SERVER: homados-postgres
+      HOMADOS_PG_PORT: 5432
+      MSF_HOST: 127.0.0.1
+      MSF_JSONRPC_PORT: 55554
+      MSF_WS_JSON_RPC_API_TOKEN: homados
+      USERNAME: homados
+      PASSWORD: DptbHd8R
+    command: bash -c "cd /root && python3 initdb.py && supervisord -c /etc/supervisor/supervisord.conf"
+    ports:
+      - "60443:443"
+      - "7000-7500:7000-7500"
+    depends_on:
+      - homados-postgres
