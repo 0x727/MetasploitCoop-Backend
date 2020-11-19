@@ -148,6 +148,9 @@ class MsfRpcMethod:
     SessionMeterpreterScreenshot = 'session.meterpreter_screenshot'
     SessionMeterpreterDirList = 'session.meterpreter_ls'
     SessionMeterpreterDirectorySeparator = 'session.meterpreter_directory_separator'
+    SessionMeterpreterRouteList = 'session.meterpreter_route_list'
+    SessionMeterpreterRouteAdd = 'session.meterpreter_route_add'
+    SessionMeterpreterRouteDel = 'session.meterpreter_route_del'
     SessionCompatibleModules = 'session.compatible_modules'
 
 
@@ -1133,6 +1136,14 @@ class MeterpreterSession(MsfSession):
         result = self.rpc.call(MsfRpcMethod.SessionMeterpreterUploadFile, [self.sid, src, dest])
         return result
 
+    def route_add(self, subnet: str, netmask: str) -> str:
+        result = self.rpc.call(MsfRpcMethod.SessionMeterpreterRouteAdd, [self.sid, subnet, netmask])['data']
+        return result
+
+    def route_del(self, subnet: str, netmask: str) -> str:
+        result = self.rpc.call(MsfRpcMethod.SessionMeterpreterRouteDel, [self.sid, subnet, netmask])
+        return result
+
 class SessionRing:
 
     def __init__(self, rpc, token):
@@ -1238,7 +1249,12 @@ class SessionManager(MsfManager):
         """
         A list of active sessions.
         """
-        return {str(k): v for k, v in self.rpc.call(MsfRpcMethod.SessionList).items()}  # Convert int id to str   
+        return {str(k): v for k, v in self.rpc.call(MsfRpcMethod.SessionList).items()}  # Convert int id to str
+
+    def route_list(self):
+        """list all route"""
+        result = self.rpc.call(MsfRpcMethod.SessionMeterpreterRouteList)
+        return result
 
     def session(self, sid):
         """

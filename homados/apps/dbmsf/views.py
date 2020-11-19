@@ -6,6 +6,8 @@ from rest_framework import filters, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from libs.utils import memview_to_str
+
 from .models import (Event, Loot, MetasploitCredentialCore, ModuleResult,
                      Session, SessionEvent, Host)
 from .serializers import (EventSerializer, LootSerializer,

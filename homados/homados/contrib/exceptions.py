@@ -22,13 +22,13 @@ class MSFJSONRPCError(exceptions.APIException):
 
 
 class MissParamError(exceptions.ValidationError):
-    def __init__(self, body_params: list=None, query_params: list=None):
+    def __init__(self, body_params: list=None, query_params: list=None, msg=''):
         data = {}
         if body_params:
             for param in body_params:
-                data[param] = '此 body 参数是必须的'
+                data[param] = f'此 body 参数是必须的 {msg}'
         if query_params:
             for param in query_params:
-                data[param] = '此 query 参数是必须的'
+                data[param] = f'此 query 参数是必须的 {msg}'
         super().__init__(detail=data)
 

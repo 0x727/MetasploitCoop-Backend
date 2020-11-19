@@ -3,7 +3,10 @@ import functools
 import io
 import threading
 import uuid
+import ipaddress
 from pathlib import Path
+from asgiref.sync import AsyncToSync
+import channels
 
 import html2text
 import magic
@@ -39,6 +42,7 @@ from .filters import ModuleFilter
 from .models import ModAutoConfig, Modules
 from .serializers import ModAutoConfigMiniSerializer, ModAutoConfigSerializer, ModuleSerializer
 from . import background
+from duplex.consumers import CustomerGroup
 
 logger = settings.LOGGER
 
@@ -48,6 +52,15 @@ refresh_mod_mutex = threading.Lock()
 
 iploc = QQwry()
 iploc.load_file(str(settings.QQWRY_PATH))
+
+def inner_try(func):
+    @functools.wraps(func)
+    def inner(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError
+    return inner
 
 
 class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
@@ -85,7 +98,7 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
                 module_info = {field.name: module_infos[name].get(field.name) for field in Modules._meta.get_fields()}
                 modules.append(Modules(**module_info))
             Modules.objects.bulk_create(modules)
-            return Response()
+            return Response(diff_names)
         except MsfRpcError as e:
             raise MSFJSONRPCError(str(e))
         except Exception as e:
@@ -232,17 +245,19 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
     @action(methods=["POST"], detail=True, url_path='executeCmd')
     def execute_cmd(self, request, *args, **kwargs):
         try:
+            sid = kwargs[self.lookup_field]
             command = request.data['command'].strip()
             if not command:
                 return Response(data='')
             for k, v in disable_command_handler.items():
                 if not k.search(command):
                     continue
-                result = v(command, sid=kwargs[self.lookup_field])
+                result = v(command, sid=sid)
                 return Response(data=result.tips)
             else:
-                shell = msfjsonrpc.sessions.session(kwargs[self.lookup_field])
+                shell = msfjsonrpc.sessions.session(sid)
                 result = shell.write(command)
+                self._send_input2front(sid, command)
                 return Response(data=f'> {command}')
         except (KeyError, ) as e:
             raise MissParamError(body_params=['command'])
@@ -250,7 +265,32 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
-    
+
+    def _send_input2front(self, sid, input_data):
+        """将用户输入命令发送到前端
+
+        Args:
+            sid: msf会话id
+            input_data: 用户输入
+        """
+        message = {
+            'type': 'notify',
+            'action': 'on_session_command',
+            'data': {
+                'sid': sid,
+                'command': input_data
+            }
+        }
+        receiver_name = CustomerGroup.Notify
+        self.channel_layer = channels.layers.get_channel_layer()
+        AsyncToSync(self.channel_layer.group_send)(
+            receiver_name,
+            {
+                'type': 'send_message',
+                'message': message
+            }
+        )
+
     @action(methods=['GET'], detail=True, url_path='cmdAutocomplete')
     def cmd_autocomplete(self, request, *args, **kwargs):
         try:
@@ -262,6 +302,8 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             return Response(data=result)
         except (KeyError, ) as e:
             raise MissParamError(query_params=['command'])
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
 
@@ -535,15 +577,6 @@ class InfoViewSet(PackResponseMixin, viewsets.GenericViewSet):
     """msf 基础信息视图集"""
     permission_classes = [IsAuthenticated]
 
-    def inner_try(func):
-        @functools.wraps(func)
-        def inner(self, *args, **kwargs):
-            try:
-                return func(self, *args, **kwargs)
-            except MsfRpcError as e:
-                raise MSFJSONRPCError
-        return inner
-
     @inner_try
     @action(methods=['GET'], detail=False, url_path='version')
     def version(self, request, *args, **kwargs):
@@ -715,3 +748,50 @@ class ResourceScriptViewSet(PackResponseMixin, viewsets.ModelViewSet):
         """执行资源脚本"""
         pass
 
+
+class RouteViewSet(PackResponseMixin, viewsets.ModelViewSet):
+    """会话路由增删改查"""
+    permission_classes = [IsAuthenticated]
+
+    @inner_try
+    def list(self, request, *args, **kwargs):
+        data = msfjsonrpc.sessions.route_list()
+        return Response(data=data)
+    
+    @inner_try
+    def create(self, request, *args, **kwargs):
+        try:
+            address = request.data['address']
+            sid = request.data['sid']
+            return self._route_operation(sid, address, 'route_add')
+        except KeyError as e:
+            raise MissParamError(body_params=['address', 'sid'])
+
+    @inner_try
+    def destroy(self, request, *args, **kwargs):
+        try:
+            subnet = request.data['subnet']
+            netmask = request.data['netmask']
+            sid = kwargs[self.lookup_field]
+            session = msfjsonrpc.sessions.session(sid)
+            res = session.route_del(subnet, netmask)
+            return Response(data=res)
+        except KeyError as e:
+            raise MissParamError(body_params=['subnet', 'netmask'])
+
+    def _route_operation(self, sid, address, operation):
+        """封装路由操作"""
+        avail = ['route_add', 'route_del']
+        assert operation in avail, f"路由操作必须为 {avail} 中的一个"
+
+        try:
+            assert '/' in address, "address 必须以 192.168.1.1/24 类似的形式"
+            session = msfjsonrpc.sessions.session(sid)
+
+            ipnet = ipaddress.ip_network(address, strict=False)
+            subnet, netmask = str(ipnet.network_address), str(ipnet.netmask)
+
+            res = getattr(session, operation)(subnet, netmask)
+            return Response(data=res)
+        except AssertionError as e:
+            raise MissParamError(query_params=['address', 'sid'], msg=str(e))

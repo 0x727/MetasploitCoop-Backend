@@ -11,6 +11,7 @@ router.register(r'infos', views.InfoViewSet, basename='msfinfo')
 router.register(r'jobs', views.JobViewSet, basename='msfjob')
 router.register(r'modConfig', views.ModAutoConfigViewSet, basename='mod_config')
 router.register(r'rcScripts', views.ResourceScriptViewSet, basename='resource_script')
+router.register(r'route', views.RouteViewSet, basename='session_route')
 
 
 urlpatterns = [
