@@ -22,3 +22,4 @@
 16. 增加内存执行exe的模块(post/windows/manage/execute_pe)（需要exe存在.reloc节，比如golang编译的exe，并且payload与目标主机架构需要相同）
 17. 新增模块或选项后自动翻译
 18. 重启容器后自动恢复之前的监听
+19. 支持客户端使用（目前只支持win，后续将添加其他版本客户端）
