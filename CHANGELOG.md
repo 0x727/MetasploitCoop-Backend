@@ -20,5 +20,5 @@
     3. redis/unauthorized: 批量扫描Redis未授权漏洞，若存在，探测/root/.ssh/与/var/spool/cron/目录权限，可写入id_rsa.pub到目标服务器（id_rsa.pub应设置绝对路径），或提示Cron反弹命令。
     4. ...更多查看（https://github.com/0x727/MetasploitModules_0x727）
 16. 增加内存执行exe的模块(post/windows/manage/execute_pe)（需要exe存在.reloc节，比如golang编译的exe，并且payload与目标主机架构需要相同）
-
-
+17. 新增模块或选项后自动翻译
+18. 重启容器后自动恢复之前的监听
