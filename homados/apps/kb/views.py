@@ -34,7 +34,8 @@ class MsfModuleManualViewSet(PackResponseMixin, viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         # 如果模块翻译不存在则进行自动翻译
-        self.auto_translate(request)
+        if request.query_params.get('fullname', ''):
+            self.auto_translate(request)
         return super().list(request, *args, **kwargs)
 
     @action(methods=['GET'], detail=False, url_path='autoTranslate')
