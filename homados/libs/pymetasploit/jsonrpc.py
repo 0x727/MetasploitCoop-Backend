@@ -145,6 +145,7 @@ class MsfRpcMethod:
     SessionMeterpreterProcessList = 'session.meterpreter_ps'
     SessionMeterpreterEditFile = 'session.meterpreter_edit_file'
     SessionMeterpreterUploadFile = 'session.meterpreter_upload_file'
+    SessionMeterpreterDownloadFile = 'session.meterpreter_download_file'
     SessionMeterpreterScreenshot = 'session.meterpreter_screenshot'
     SessionMeterpreterDirList = 'session.meterpreter_ls'
     SessionMeterpreterDirectorySeparator = 'session.meterpreter_directory_separator'
@@ -1135,6 +1136,10 @@ class MeterpreterSession(MsfSession):
     def upload_file(self, src, dest):
         result = self.rpc.call(MsfRpcMethod.SessionMeterpreterUploadFile, [self.sid, src, dest])
         return result
+    
+    def download_file(self, src, dest=None):
+        result = self.rpc.call(MsfRpcMethod.SessionMeterpreterDownloadFile, [self.sid, src, dest])
+        return result['data']
 
     def route_add(self, subnet: str, netmask: str) -> str:
         result = self.rpc.call(MsfRpcMethod.SessionMeterpreterRouteAdd, [self.sid, subnet, netmask])['data']

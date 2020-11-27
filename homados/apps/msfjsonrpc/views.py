@@ -451,6 +451,22 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
         except Exception as e:
             raise UnknownError
 
+    @action(methods=['GET'], detail=True, url_path='downloadFile')
+    def download_file(self, request, *args, **kwargs):
+        try:
+            sid = kwargs[self.lookup_field]
+            src = str(request.query_params.get('src'))
+            session = msfjsonrpc.sessions.session(sid)
+            report_msfjob_event(f'{get_user_ident(request.user)} 正在对会话 {sid} 进行下载文件操作')
+            result = session.download_file(src)
+            return Response(data=result)
+        except (KeyError, ) as e:
+            raise MissParamError(query_params=['src'])
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
+        except Exception as e:
+            raise UnknownError
+
 
 class LootViewSet(PackResponseMixin, NoUpdateViewSet):
     """msf loot 文件中转区视图集"""
