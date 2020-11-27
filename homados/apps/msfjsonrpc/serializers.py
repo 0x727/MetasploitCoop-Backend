@@ -28,4 +28,4 @@ class ModAutoConfigMiniSerializer(serializers.ModelSerializer):
     """模块自动配置的精简信息"""
     class Meta:
         model = models.ModAutoConfig
-        fields = ('id', 'config', 'is_public')
+        fields = ('id', 'config', 'is_public', 'is_enabled')

@@ -36,5 +36,6 @@ class ModAutoConfig(models.Model):
     config = JSONField(verbose_name='配置项')
     is_public = models.BooleanField(default=False, verbose_name='是否公开给其他人使用')
     user = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.DO_NOTHING, db_constraint=False, verbose_name='所属用户')
+    is_enabled = models.BooleanField(default=False, verbose_name='是否启用')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
