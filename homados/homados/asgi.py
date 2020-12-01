@@ -11,15 +11,20 @@ import os
 
 from channels.routing import ProtocolTypeRouter
 from django.core.asgi import get_asgi_application
-from homados.middleware.wsmw import QueryXTokenAuthMiddleware
 from channels.routing import ProtocolTypeRouter, URLRouter
-import apps.duplex.routing
-import apps.synergy.routing
+
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'homados.settings.dev_micro')
 
+django_asgi_app = get_asgi_application()
+
+
+from homados.middleware.wsmw import QueryXTokenAuthMiddleware
+import apps.duplex.routing
+import apps.synergy.routing
+
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
+    "http": django_asgi_app,
     # Just HTTP for now. (We can add other protocols later.)
     'websocket': QueryXTokenAuthMiddleware(
         URLRouter(

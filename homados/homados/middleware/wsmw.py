@@ -1,7 +1,5 @@
 # websocket middleware
 
-from channels.middleware import BaseMiddleware
-from channels.auth import UserLazyObject
 from django.conf import settings
 from importlib import import_module
 from channels.auth import get_user

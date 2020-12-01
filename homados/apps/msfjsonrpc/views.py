@@ -247,17 +247,21 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
         try:
             sid = kwargs[self.lookup_field]
             command = request.data['command'].strip()
+            self._send_input2front(sid, command)
             if not command:
                 return Response(data='')
+            # 查看输入的命令是否为禁用命令
             for k, v in disable_command_handler.items():
                 if not k.search(command):
                     continue
                 result = v(command, sid=sid)
+                # 针对禁用命令的提示结果推送
+                if not result.can_exec:
+                    self._send_output2front(sid, result.tips)
                 return Response(data=result.tips)
             else:
                 shell = msfjsonrpc.sessions.session(sid)
                 result = shell.write(command)
-                self._send_input2front(sid, command)
                 return Response(data=f'> {command}')
         except (KeyError, ) as e:
             raise MissParamError(body_params=['command'])
@@ -279,6 +283,31 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             'data': {
                 'sid': sid,
                 'command': input_data
+            }
+        }
+        receiver_name = CustomerGroup.Notify
+        self.channel_layer = channels.layers.get_channel_layer()
+        AsyncToSync(self.channel_layer.group_send)(
+            receiver_name,
+            {
+                'type': 'send_message',
+                'message': message
+            }
+        )
+    
+    def _send_output2front(self, sid: int, output: str):
+        """将命令输出发送到前端，一般只适用于中间层拦截某些命令进行输出，于msf中的ws通知保持一致
+        
+        Args:
+            sid: msf会话id
+            output: 命令输出
+        """
+        message = {
+            'type': 'notify',
+            'action': 'on_session_output',
+            'data': {
+                'sid': int(sid),
+                'output': base64.b64encode(output.encode()).decode()
             }
         }
         receiver_name = CustomerGroup.Notify
