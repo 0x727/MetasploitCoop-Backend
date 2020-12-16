@@ -1,5 +1,9 @@
-from .models import Session, SessionEvent
+from .models import ModuleResult, Session, SessionEvent
 from .serializers import SessionEventSerializer
+from django.contrib.postgres.aggregates.general import StringAgg
+from django.db.models.aggregates import Min
+from libs.utils import memview_to_str
+from dateutil import parser
 
 
 # deprecated
@@ -17,3 +21,30 @@ def get_last_output(sid):
         item = dict(item)
         output += item.get('output') or ''
     return output
+
+def get_session_events(session) -> list:
+    data = []
+    if session.session_events:
+        serializer = SessionEventSerializer(session.session_events, many=True)
+        data = serializer.data
+    return data
+
+def get_module_results(session) -> list:
+    data = []
+    if session.module_results:
+        track_uuids = ModuleResult.objects.values_list('track_uuid', flat=True)
+        data = list(ModuleResult.objects.filter(session=session).values('track_uuid').annotate(
+            output=StringAgg('output', delimiter='', ordering='id'),
+            created_at=Min('created_at'),
+            fullname=Min('fullname')
+        ))
+    for i in data:
+        i['output'] = memview_to_str(i['output'])
+    return data
+
+def sort_history_key(obj):
+    """自定义排序函数"""
+    created_at = obj['created_at']
+    if isinstance(created_at, str):
+        return parser.parse(created_at)
+    return created_at

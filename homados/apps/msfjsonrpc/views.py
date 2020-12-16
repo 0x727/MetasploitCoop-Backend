@@ -12,6 +12,7 @@ import html2text
 import magic
 from dbmsf.models import ModuleResult
 from dbmsf.serializers import Session, SessionEvent, SessionEventSerializer
+from dbmsf.utils import get_session_events, get_module_results, sort_history_key
 from django.conf import settings
 from django.contrib.postgres.aggregates.general import StringAgg
 from django.core.exceptions import ObjectDoesNotExist
@@ -433,12 +434,8 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
         """session执行过的事件"""
         try:
             sid = kwargs[self.lookup_field]
-            db_session = Session.objects.filter(local_id=sid).order_by('-id').first()
-            if not db_session:
-                raise exceptions.NotFound
-            session_events = db_session.session_events
-            serializer = SessionEventSerializer(session_events, many=True)
-            return Response(data=serializer.data)
+            db_session = self._get_db_session_from_sid(sid)
+            return Response(get_session_events(db_session))
         except MsfRpcError as e:
             raise MSFJSONRPCError(str(e))
         except Exception as e:
@@ -449,21 +446,33 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
         """session 的模块执行结果"""
         try:
             sid = kwargs[self.lookup_field]
-            db_session = Session.objects.filter(local_id=sid).order_by('-id').first()
-            if not db_session:
-                raise exceptions.NotFound
-            data = list(ModuleResult.objects.filter(session=db_session).values('track_uuid').annotate(
-                output=StringAgg('output', delimiter=''),
-                created_at=Min('created_at'),
-                fullname=Min('fullname')
-            ))
-            for i in data:
-                i['output'] = memview_to_str(i['output'])
-            return Response(data=data)
+            db_session = self._get_db_session_from_sid(sid)
+            return Response(get_module_results(db_session))
         except MsfRpcError as e:
             raise MSFJSONRPCError(str(e))
         except Exception as e:
             raise UnknownError
+    
+    @action(methods=['GET'], detail=True, url_path='history')
+    def history(self, request, *args, **kwargs):
+        """会话的事件和模块执行记录"""
+        try:
+            sid = kwargs[self.lookup_field]
+            db_session = self._get_db_session_from_sid(sid)
+            data = get_session_events(db_session)
+            data.extend(get_module_results(db_session))
+            data.sort(key=sort_history_key)
+            return Response(data)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError(str(e))
+        except Exception as e:
+            raise UnknownError
+
+    def _get_db_session_from_sid(self, sid):
+        db_session = Session.objects.filter(local_id=sid).order_by('-id').first()
+        if not db_session:
+            raise exceptions.NotFound
+        return db_session
     
     @action(methods=['GET'], detail=True, url_path='screenshot')
     def screenshot(self, request, *args, **kwargs):
@@ -572,7 +581,9 @@ class LootViewSet(PackResponseMixin, NoUpdateViewSet):
         try:
             path = request.data['path']
             content = msfjsonrpc.core.loot_download(path)
-            ftype = magic.from_buffer(content, mime=True)
+            ftype = None
+            if content:
+                ftype = magic.from_buffer(content, mime=True)
             data = {
                 'content': base64.b64encode(content).decode(),
                 'ftype': ftype
