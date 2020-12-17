@@ -34,14 +34,16 @@ def run(options=None, info=None):
     """
     from django.conf import settings
     from rest_framework import exceptions
-    from libs.pymetasploit.jsonrpc import MsfJsonRpc
-    msfjsonrpc = MsfJsonRpc(
-        server=settings.MSFCONFIG['HOST'],
-        port=settings.MSFCONFIG['JSONRPC']['PORT'],
-        token=settings.MSFCONFIG['JSONRPC']['TOKEN'],
-    )
     try:
         res = b''
+
+        # 从msf生成shellcode
+        from libs.pymetasploit.jsonrpc import MsfJsonRpc
+        msfjsonrpc = MsfJsonRpc(
+            server=settings.MSFCONFIG['HOST'],
+            port=settings.MSFCONFIG['JSONRPC']['PORT'],
+            token=settings.MSFCONFIG['JSONRPC']['TOKEN'],
+        )
         payload = msfjsonrpc.modules.use('payload', options.get('module'))
         payload['Format'] = 'raw'
         for k, v in info.items():

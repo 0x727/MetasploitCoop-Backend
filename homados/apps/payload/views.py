@@ -14,6 +14,7 @@ logger = settings.LOGGER
 
 plugin_base = PluginBase(package='plugins.payload')
 plugin_source = plugin_base.make_plugin_source(searchpath=[str(settings.BASE_DIR.joinpath('plugins/payload'))])
+
 logger.info('执行模块检查')
 for plugin_name in plugin_source.list_plugins():
     plugin = plugin_source.load_plugin(plugin_name)
