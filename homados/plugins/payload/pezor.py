@@ -78,17 +78,17 @@ def run(options=None, info=None):
 
 def _build_cmd(options, src):
     cmds = ['PEzor']
-    if options.get('arch') is not None:
+    if options.get('arch'):
         cmds.append(f"-{options.get('arch')}")
-    if options.get('debug') is not None:
+    if options.get('debug'):
         cmds.append(f"-{options.get('debug')}")
-    if options.get('text') is not None:
+    if options.get('text'):
         cmds.append(f"-{options.get('text')}")
-    if options.get('self') is not None:
+    if options.get('self'):
         cmds.append(f"-{options.get('self')}")
-    if options.get('sleep') is not None:
+    if options.get('sleep'):
         cmds.append(f"-sleep={options.get('sleep')}")
-    if options.get('format') is not None:
+    if options.get('format'):
         cmds.append(f"-format={options.get('format')}")
     cmds.append(src)
     return cmds

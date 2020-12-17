@@ -54,6 +54,8 @@ class PayloadViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
                 if value is None:
                     if option._required:
                         errs.append(f'{option._name} 参数必须存在')
+                    else:
+                        data[option._name] = option._default
                 else:
                     if not option.is_valid(value):
                         errs.append(f'{option._name} 参数必须是 {option._type} 类型')
