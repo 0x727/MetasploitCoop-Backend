@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'duplex',
     'kb',
     'synergy',
+    'payload',
 ]
 
 MIDDLEWARE = [
@@ -243,3 +244,10 @@ DATA_DIR = BASE_DIR.joinpath('data')
 
 # qqwry.dat ip 纯真数据库path
 QQWRY_PATH = DATA_DIR.joinpath('qqwry.dat')
+
+
+# TMP_DIR the tmp files are stored
+TMP_DIR = BASE_DIR.joinpath('data/tmp')
+
+if not TMP_DIR.exists():
+    TMP_DIR.mkdir()

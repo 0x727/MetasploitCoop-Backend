@@ -1,3 +1,4 @@
 venv
 __pycache__
 /homados/logs/*
+/homados/data/tmp/*
