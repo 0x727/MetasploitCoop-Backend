@@ -1,5 +1,6 @@
 from django.db import models
-from homados.contrib.fields import RubyHashField, UnlimitedCharField
+from homados.contrib.fields import UnlimitedCharField
+from django.contrib.postgres.fields import HStoreField
 
 
 class Workspace(models.Model):
@@ -21,17 +22,17 @@ class Workspace(models.Model):
 class Event(models.Model):
     """时间表"""
     id = models.AutoField(primary_key=True)
-    workspace = models.ForeignKey(to='dbmsf.Workspace', db_constraint=False, on_delete=models.DO_NOTHING, 
-                            db_column='workspace_id', related_name='events', verbose_name='工作区id')
-    host = models.ForeignKey(to='dbmsf.Host', db_constraint=False, on_delete=models.DO_NOTHING, 
-                            db_column='host_id', related_name='events', verbose_name='主机id')
+    workspace = models.ForeignKey(to='dbmsf.Workspace', db_constraint=False, on_delete=models.DO_NOTHING,
+                                  db_column='workspace_id', related_name='events', verbose_name='工作区id')
+    host = models.ForeignKey(to='dbmsf.Host', db_constraint=False, on_delete=models.DO_NOTHING,
+                             db_column='host_id', related_name='events', verbose_name='主机id')
     created_at = models.DateTimeField(verbose_name='创建时间')
     updated_at = models.DateTimeField(verbose_name='更新时间')
     name = UnlimitedCharField(verbose_name='事件名')
     critical = models.BooleanField(verbose_name='是否重要')
     seen = models.BooleanField()
     username = UnlimitedCharField()
-    info = RubyHashField(verbose_name='事件信息')
+    info = HStoreField(verbose_name='事件信息')
 
     class Meta:
         db_table = 'events'
@@ -74,15 +75,15 @@ class Host(models.Model):
 class Session(models.Model):
     """会话表"""
     id = models.AutoField(primary_key=True)
-    host = models.ForeignKey(to='dbmsf.Host', db_constraint=False, on_delete=models.DO_NOTHING, 
-                            db_column='host_id', related_name='sessions', verbose_name='主机id')
+    host = models.ForeignKey(to='dbmsf.Host', db_constraint=False, on_delete=models.DO_NOTHING,
+                             db_column='host_id', related_name='sessions', verbose_name='主机id')
     stype = UnlimitedCharField(verbose_name='会话类型')
     via_exploit = UnlimitedCharField(verbose_name='使用的exp')
     via_payload = UnlimitedCharField(verbose_name='使用的payload')
     desc = UnlimitedCharField(null=True, verbose_name='描述')
     port = models.IntegerField(verbose_name='端口')
     platform = UnlimitedCharField(verbose_name='描述')
-    datastore = RubyHashField(verbose_name='基本信息')
+    datastore = HStoreField(verbose_name='基本信息')
     opened_at = models.DateTimeField()
     closed_at = models.DateTimeField()
     close_reason = UnlimitedCharField(blank=True, verbose_name='关闭原因')
@@ -97,7 +98,7 @@ class Session(models.Model):
 class SessionEvent(models.Model):
     """会话事件表"""
     id = models.AutoField(primary_key=True)
-    session = models.ForeignKey(to='dbmsf.Session', db_constraint=False, on_delete=models.DO_NOTHING, 
+    session = models.ForeignKey(to='dbmsf.Session', db_constraint=False, on_delete=models.DO_NOTHING,
                                 db_column='session_id', related_name='session_events', verbose_name='会话id')
     etype = UnlimitedCharField(verbose_name='事件类型')
     command = models.BinaryField(verbose_name='命令')
@@ -113,7 +114,7 @@ class SessionEvent(models.Model):
 class ModuleResult(models.Model):
     """模块结果表"""
     id = models.AutoField(primary_key=True)
-    session = models.ForeignKey(to='dbmsf.Session', db_constraint=False, on_delete=models.DO_NOTHING, 
+    session = models.ForeignKey(to='dbmsf.Session', db_constraint=False, on_delete=models.DO_NOTHING,
                                 db_column='session_id', related_name='module_results', verbose_name='会话id')
     track_uuid = models.CharField(max_length=20, verbose_name='执行模块任务uuid')
     fullname = models.CharField(max_length=200, verbose_name='模块名')
@@ -127,8 +128,8 @@ class ModuleResult(models.Model):
 class Service(models.Model):
     """服务表"""
     id = models.AutoField(primary_key=True)
-    host = models.ForeignKey(to='dbmsf.Host', db_constraint=False, on_delete=models.DO_NOTHING, 
-                            db_column='host_id', related_name='services', verbose_name='主机id')
+    host = models.ForeignKey(to='dbmsf.Host', db_constraint=False, on_delete=models.DO_NOTHING,
+                             db_column='host_id', related_name='services', verbose_name='主机id')
     created_at = models.DateTimeField()
     port = models.IntegerField(verbose_name='端口')
     proto = models.CharField(max_length=16, verbose_name='传输层协议')
@@ -144,9 +145,9 @@ class Service(models.Model):
 class MetasploitCredentialLogin(models.Model):
     """cred login"""
     id = models.AutoField(primary_key=True)
-    core = models.ForeignKey(to='dbmsf.MetasploitCredentialCore', db_constraint=False, on_delete=models.DO_NOTHING, 
+    core = models.ForeignKey(to='dbmsf.MetasploitCredentialCore', db_constraint=False, on_delete=models.DO_NOTHING,
                                 db_column='core_id', related_name='cred_logins', verbose_name='核心表关联')
-    service = models.ForeignKey(to='dbmsf.Service', db_constraint=False, on_delete=models.DO_NOTHING, 
+    service = models.ForeignKey(to='dbmsf.Service', db_constraint=False, on_delete=models.DO_NOTHING,
                                 db_column='service_id', related_name='cred_logins', verbose_name='服务')
     access_level = UnlimitedCharField()
     status = UnlimitedCharField()
@@ -199,7 +200,7 @@ class MetasploitCredentialOriginSession(models.Model):
     """cred origin session"""
     id = models.AutoField(primary_key=True)
     post_reference_name = models.TextField(verbose_name='post模块名')
-    session = models.ForeignKey(to='dbmsf.Session', db_constraint=False, on_delete=models.DO_NOTHING, 
+    session = models.ForeignKey(to='dbmsf.Session', db_constraint=False, on_delete=models.DO_NOTHING,
                                 db_column='session_id', related_name='cred_origins', verbose_name='会话id')
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
@@ -211,14 +212,14 @@ class MetasploitCredentialOriginSession(models.Model):
 class MetasploitCredentialCore(models.Model):
     id = models.AutoField(primary_key=True)
     origin_type = UnlimitedCharField()
-    origin = models.ForeignKey(to='dbmsf.MetasploitCredentialOriginSession', db_constraint=False, on_delete=models.DO_NOTHING, 
-                                db_column='origin_id', related_name='cred_core')
-    private = models.ForeignKey(to='dbmsf.MetasploitCredentialPrivate', db_constraint=False, on_delete=models.DO_NOTHING, 
+    origin = models.ForeignKey(to='dbmsf.MetasploitCredentialOriginSession', db_constraint=False, on_delete=models.DO_NOTHING,
+                               db_column='origin_id', related_name='cred_core')
+    private = models.ForeignKey(to='dbmsf.MetasploitCredentialPrivate', db_constraint=False, on_delete=models.DO_NOTHING,
                                 db_column='private_id', related_name='cred_core')
-    public = models.ForeignKey(to='dbmsf.MetasploitCredentialPublic', db_constraint=False, on_delete=models.DO_NOTHING, 
-                                db_column='public_id', related_name='cred_core')
-    realm = models.ForeignKey(to='dbmsf.MetasploitCredentialRealm', db_constraint=False, on_delete=models.DO_NOTHING, 
-                                db_column='realm_id', related_name='cred_core')
+    public = models.ForeignKey(to='dbmsf.MetasploitCredentialPublic', db_constraint=False, on_delete=models.DO_NOTHING,
+                               db_column='public_id', related_name='cred_core')
+    realm = models.ForeignKey(to='dbmsf.MetasploitCredentialRealm', db_constraint=False, on_delete=models.DO_NOTHING,
+                              db_column='realm_id', related_name='cred_core')
     workspace_id = models.IntegerField()
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
@@ -232,15 +233,15 @@ class MetasploitCredentialCore(models.Model):
 class Loot(models.Model):
     """战利品表"""
     id = models.AutoField(primary_key=True)
-    workspace = models.ForeignKey(to='dbmsf.Workspace', db_constraint=False, on_delete=models.DO_NOTHING, 
-                            db_column='workspace_id', related_name='loots', verbose_name='工作区id')
-    host = models.ForeignKey(to='dbmsf.Host', db_constraint=False, on_delete=models.DO_NOTHING, 
-                            db_column='host_id', related_name='loots', verbose_name='主机id')
-    service = models.ForeignKey(to='dbmsf.Service', db_constraint=False, on_delete=models.DO_NOTHING, 
+    workspace = models.ForeignKey(to='dbmsf.Workspace', db_constraint=False, on_delete=models.DO_NOTHING,
+                                  db_column='workspace_id', related_name='loots', verbose_name='工作区id')
+    host = models.ForeignKey(to='dbmsf.Host', db_constraint=False, on_delete=models.DO_NOTHING,
+                             db_column='host_id', related_name='loots', verbose_name='主机id')
+    service = models.ForeignKey(to='dbmsf.Service', db_constraint=False, on_delete=models.DO_NOTHING,
                                 db_column='service_id', related_name='loots', verbose_name='服务')
     ltype = models.CharField(max_length=512, verbose_name='类型')
     path = models.CharField(max_length=1024, verbose_name='所在目录')
-    data = RubyHashField(verbose_name='数据')
+    data = HStoreField(verbose_name='数据')
     created_at = models.DateTimeField(verbose_name='创建时间')
     updated_at = models.DateTimeField(verbose_name='更新时间')
     content_type = UnlimitedCharField(verbose_name='内容类型')

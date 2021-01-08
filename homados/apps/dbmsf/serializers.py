@@ -1,13 +1,14 @@
 from django.db.models import fields
 from homados.contrib.serializers import BinaryTextField
 from rest_framework import serializers
+from homados.contrib.fields import RubyJSONField
 
 from .models import (Event, Loot, MetasploitCredentialCore, ModuleResult,
                      Session, SessionEvent, Host)
 
 
 class SessionSerializer(serializers.ModelSerializer):
-    datastore = serializers.JSONField()
+    datastore = RubyJSONField()
 
     class Meta:
         model = Session
@@ -57,19 +58,23 @@ class MetasploitCredentialCoreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MetasploitCredentialCore
-        fields = ('id', 'sid', 'service','host', 'post_reference_name', 'private', 'private_type',
-                    'jtr_format', 'public', 'realm_key', 'realm_value', 'created_at', 'updated_at')
-    
+        fields = ('id', 'sid', 'service', 'host', 'post_reference_name', 'private', 'private_type',
+                  'jtr_format', 'public', 'realm_key', 'realm_value', 'created_at', 'updated_at')
+
+    def create_password(self, validated_data):
+        pass
+
     def get_service(self, obj):
         logins = obj.cred_logins.all()
         if not logins:
             return ''
-        logins_info = set([f'{l.service.port}/{l.service.proto} ({l.service.name})' for l in logins])
+        logins_info = set(
+            [f'{l.service.port}/{l.service.proto} ({l.service.name})' for l in logins])
         return ', '.join(logins_info)
 
 
 class EventSerializer(serializers.ModelSerializer):
-    info = serializers.JSONField()
+    info = RubyJSONField()
 
     class Meta:
         model = Event
@@ -77,7 +82,7 @@ class EventSerializer(serializers.ModelSerializer):
 
 
 class LootSerializer(serializers.ModelSerializer):
-    data = serializers.JSONField()
+    data = RubyJSONField()
 
     class Meta:
         model = Loot

@@ -152,17 +152,30 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
             return Response(data=instance.info_html)
         except MsfRpcError as e:
             raise MSFJSONRPCError
-    
+
+    @action(detail=False, url_path='info')
+    def get_info(self, request, *args, **kwargs):
+        """根据指定id获取模块信息"""
+        fullname = request.query_params.get('fullname')
+        try:
+            module_type = fullname.split('/')[0]
+            module_info = msfjsonrpc.modules.use(module_type, fullname).info
+            return Response(data=module_info)
+        except MsfRpcError as e:
+            raise MSFJSONRPCError
+
     @action(detail=False, url_path='compatible-payloads')
     def get_compatible_payloads(self, request, *args, **kwargs):
-        """获取与某个 exploit 相兼容的 payload 列表"""
+        """获取与某个 exploit 相兼容的 payload 列表,添加了target支持"""
         try:
             exploit_fullname = request.query_params.get('ref_name') or 'multi/handler'
             exploit_fullname = exploit_fullname[8:] if exploit_fullname.startswith('exploit/') else exploit_fullname
             exploit_module = Modules.objects.filter(type='exploit', ref_name=exploit_fullname).first()
-            if exploit_module.compatible_payloads is not None:
-                return Response(data=exploit_module.compatible_payloads)
+            # if exploit_module.compatible_payloads is not None:
+            #     return Response(data=exploit_module.compatible_payloads)
             module_exp = msfjsonrpc.modules.use('exploit', exploit_fullname)
+            if(request.query_params.get('target')):
+                module_exp._target = request.query_params.get('target')
             exploit_module.compatible_payloads = module_exp.payloads
             exploit_module.save()
             return Response(data=exploit_module.compatible_payloads)
@@ -197,6 +210,7 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     def execute(self, request, *args, **kwargs):
         try:
             module = self.get_object()
+            # import ipdb;ipdb.set_trace()
             mod = msfjsonrpc.modules.use(module.type, module.ref_name)
             for k, v in request.data.items():
                 mod[k.upper()] = v
@@ -215,7 +229,7 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
         return self.list(request, *args, **kwargs)
 
 
-class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
+class SessionViewSet(PackResponseMixin, viewsets.ModelViewSet):
     """msf 会话视图集"""
     permission_classes = [IsAuthenticated]
 
@@ -225,8 +239,12 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
         # update_thread 另开线程进行主机存活更新
         update_thread = background.UpdateHostsInfoThread(sessions)
         update_thread.start()
+        # import ipdb; ipdb.set_trace()
         for k, v in sessions.items():
             tunnel_peer = v.get('tunnel_peer')
+            db_session = self._get_db_session_from_sid(k)
+            v['desc'] = db_session.desc
+            v['db_id'] = db_session.id
             if tunnel_peer:
                 rip = tunnel_peer.split(':')[0].strip()
                 location = iploc.lookup(rip)
@@ -242,7 +260,7 @@ class SessionViewSet(PackResponseMixin, ListDestroyViewSet):
             raise MSFJSONRPCError
         except Exception as e:
             raise UnknownError
-    
+
     @action(methods=["POST"], detail=True, url_path='executeCmd')
     def execute_cmd(self, request, *args, **kwargs):
         try:

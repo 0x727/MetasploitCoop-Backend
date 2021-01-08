@@ -19,7 +19,7 @@ from .serializers import LogSerializer, UserRegisterSerializer, UserSerializer
 runtime_config = ConfigCache()
 
 
-class AuthViewSet(PackResponseMixin, viewsets.GenericViewSet):
+class AuthViewSet(PackResponseMixin, viewsets.ModelViewSet):
     """auth viewset"""
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -61,7 +61,30 @@ class AuthViewSet(PackResponseMixin, viewsets.GenericViewSet):
         data['close_register'] = runtime_config.get('close_register', False)
         data.update(serializer.data)
         return Response(data)
+
+    def list(self, request):
+        queryset = User.objects.all()
+        serializer = UserSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(data={'detail': f'{instance.username} 删除成功'})
     
+    def update(self, request, *args, **kwargs):
+        try:
+            user = User.objects.get(username=self.get_object())
+            if(request.data['password']==request.data['confirm_password']):
+                user.set_password(request.data.get('password'))
+                user.save()
+                return Response({'detail': '修改密码成功'})
+            else:
+                return Response({'detail': 'The two password inputs are not the same'})
+        except KeyError as e:
+            raise MissParamError(query_params=[str(e)])
+
+
     @action(methods=["PATCH"], detail=False, url_path="switchRegister")
     def switch_register(self, request, *args, **kwargs):
         try:

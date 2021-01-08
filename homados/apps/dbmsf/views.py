@@ -19,7 +19,7 @@ from .serializers import (EventSerializer, LootSerializer,
                           SessionSerializer, HostSerializer)
 
 
-class SessionViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
+class SessionViewSet(PackResponseMixin, viewsets.ModelViewSet):
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
     permission_classes = [IsAuthenticated]
@@ -44,6 +44,7 @@ class SessionViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
         data.sort(key=utils.sort_history_key)
         return Response(data)
 
+
 class SessionEventViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     queryset = SessionEvent.objects.all()
     serializer_class = SessionEventSerializer
@@ -63,11 +64,17 @@ class ModuleResultViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(results, many=True)
         return Response(serializer.data)
 
-class MetasploitCredentialCoreViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
+
+class MetasploitCredentialCoreViewSet(PackResponseMixin, viewsets.ModelViewSet):
     queryset = MetasploitCredentialCore.objects.all()
     serializer_class = MetasploitCredentialCoreSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
+
+    def create(self, request, *args, **kwargs):
+        print(request)
+        print("Creating")
+        super().create(request, *args, **kwargs)
 
 
 class EventViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
@@ -77,14 +84,14 @@ class EventViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     filter_backends = [filters.OrderingFilter]
 
 
-class LootViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
+class LootViewSet(PackResponseMixin, viewsets.ModelViewSet):
     queryset = Loot.objects.all()
     serializer_class = LootSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.OrderingFilter]
 
 
-class HostViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
+class HostViewSet(PackResponseMixin, viewsets.ModelViewSet):
     queryset = Host.objects.all()
     serializer_class = HostSerializer
     permission_classes = [IsAuthenticated]
