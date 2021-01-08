@@ -1,0 +1,4 @@
+
+class PayloadType:
+    SHELLCODE_PACKER = 'SHELLCODE_PACKER'
+    GENERATOR = 'GENERATOR'
