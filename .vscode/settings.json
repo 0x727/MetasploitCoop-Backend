@@ -22,5 +22,6 @@
     "python.analysis.extraPaths": [
         "./homados",
         "./homados/apps"
-    ]
+    ],
+    "python.pythonPath": "venv/bin/python"
 }

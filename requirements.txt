@@ -14,3 +14,5 @@ ratelimit==2.2.1
 django-cors-headers==3.5.0
 qqwry-py3==1.2.1
 htpasswd==2.3
+python-dateutil==2.8.1
+pluginbase==1.0.0

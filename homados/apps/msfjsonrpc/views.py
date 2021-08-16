@@ -210,7 +210,6 @@ class ModuleViewSet(PackResponseMixin, viewsets.ReadOnlyModelViewSet):
     def execute(self, request, *args, **kwargs):
         try:
             module = self.get_object()
-            # import ipdb;ipdb.set_trace()
             mod = msfjsonrpc.modules.use(module.type, module.ref_name)
             for k, v in request.data.items():
                 mod[k.upper()] = v
@@ -239,7 +238,6 @@ class SessionViewSet(PackResponseMixin, viewsets.ModelViewSet):
         # update_thread 另开线程进行主机存活更新
         update_thread = background.UpdateHostsInfoThread(sessions)
         update_thread.start()
-        # import ipdb; ipdb.set_trace()
         for k, v in sessions.items():
             tunnel_peer = v.get('tunnel_peer')
             db_session = self._get_db_session_from_sid(k)
