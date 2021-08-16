@@ -74,7 +74,9 @@ def memview_to_str(data):
 def get_translation_from_qq(text):
     """从腾讯翻译君翻译字符"""
     # 腾讯接口每秒5次频率限制
-    try: 
+    try:
+        if not settings.TENCENT_TRANSLATE_TOKEN['SecretId'] or not settings.TENCENT_TRANSLATE_TOKEN['SecretKey']:
+            return None
         cred = credential.Credential(settings.TENCENT_TRANSLATE_TOKEN['SecretId'], settings.TENCENT_TRANSLATE_TOKEN['SecretKey']) 
         httpProfile = HttpProfile()
         httpProfile.endpoint = "tmt.tencentcloudapi.com"
