@@ -8,7 +8,7 @@ services:
     volumes:
       - ./data:/var/lib/postgresql/data
 
-      msfcoop:
+  msfcoop:
     build: .
     image: registry.cn-hangzhou.aliyuncs.com/akkuman/metasploit-coop:1.0.20210817
     environment:
