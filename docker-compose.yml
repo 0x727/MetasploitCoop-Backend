@@ -10,7 +10,7 @@ services:
 
       msfcoop:
     build: .
-    image: registry.cn-hangzhou.aliyuncs.com/akkuman/metasploit-coop:1.1.0
+    image: registry.cn-hangzhou.aliyuncs.com/akkuman/metasploit-coop:1.0.20210817
     environment:
       HOMADOS_PG_USER: postgres
       HOMADOS_PG_PASS: msfcoop@123
