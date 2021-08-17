@@ -8,6 +8,8 @@ from kb.models import ContextMenu, MsfModuleManual, TranslationBase, FocusKeywor
 
 class MsfModuleManualSerializer(serializers.ModelSerializer):
     options = MyJSONField(ensure_ascii=False, allow_null=True, default=None)
+    title = serializers.CharField(allow_blank=True)
+    intro = serializers.CharField(allow_blank=True)
 
     class Meta:
         model = MsfModuleManual

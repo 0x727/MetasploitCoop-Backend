@@ -50,11 +50,11 @@ class MsfModuleManualViewSet(PackResponseMixin, viewsets.ModelViewSet):
                 'fullname': fullname
             }
             options = msfmodule.options
-            data['title'] = self._get_translate(msfmodule.name)
-            data['intro'] = self._get_translate(msfmodule.description)
+            data['title'] = self._get_translate(msfmodule.name) or msfmodule.name
+            data['intro'] = self._get_translate(msfmodule.description) or msfmodule.description
             options_trans = {}
             for k, v in options.items():
-                options_trans[k] = self._get_translate(v['desc'])
+                options_trans[k] = self._get_translate(v['desc']) or v['desc']
             data['options'] = options_trans
             _kwargs = {
                 'data': data
@@ -94,7 +94,9 @@ class MsfModuleManualViewSet(PackResponseMixin, viewsets.ModelViewSet):
             return result
         # 从腾讯翻译君翻译
         result = get_translation_from_qq(text)
-        if result:
+        if result == '':
+            return ''
+        elif result:
             # 增加翻译到数据库
             self._add_translation_to_db(text, result)
             return result

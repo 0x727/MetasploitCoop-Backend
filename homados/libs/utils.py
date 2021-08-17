@@ -76,7 +76,7 @@ def get_translation_from_qq(text):
     # 腾讯接口每秒5次频率限制
     try:
         if not settings.TENCENT_TRANSLATE_TOKEN['SecretId'] or not settings.TENCENT_TRANSLATE_TOKEN['SecretKey']:
-            return None
+            return ''
         cred = credential.Credential(settings.TENCENT_TRANSLATE_TOKEN['SecretId'], settings.TENCENT_TRANSLATE_TOKEN['SecretKey']) 
         httpProfile = HttpProfile()
         httpProfile.endpoint = "tmt.tencentcloudapi.com"
